@@ -1,9 +1,9 @@
-TOKEN ='token' ## main client: "NjI3NTIxNDc4NzYxMzgxOTIw.XY926w.mSD4jonhO9AmwsVxTuNCYtWoFeU" ## beta Client: 
-OWNERID = 00000000000000000000
+TOKEN ='token'
+OWNERID = 000
 
-PgName = 'blu'
+PgName = 'blut'
 PgDb = 'bet'
 PgPwrd = 'pw'
-PgHost = 'localhost'
+PgHost = 'local'
 
 clientVer = "2.0-Beta0.27"
