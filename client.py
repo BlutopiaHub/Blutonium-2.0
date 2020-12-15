@@ -737,6 +737,35 @@ class Client(commands.Bot):
 
         self.db.commit()
     
+    # Fetch Mutes is to get all he mutes in a given guild
+    def fetch_mutes(self, guildid):
+
+        sql = f"SELECT * FROM mutes WHERE guildid = {guildid}"
+
+        rows = self.db.run(sql)
+
+        return rows
+
+    # fetch_active_mutes is essentially the same as fetch_mutes but this method querys our cache instead of our database so that our unmute loop can run faster.
+    def fetch_active_mutes(self, guildid):
+
+        mutes = []
+
+        for x in self.mute_cache[guildid]:
+
+            if self.mute_cache[guildid][x]['active']:
+
+                time = self.mute_cache[guildid][x]['time']
+                reason = self.mute_cache[guildid][x]['reason']
+                modid = self.mute_cache[guildid][x]['modid']
+
+
+                mute = (guildid, x, reason, time, modid)
+
+                mutes.append(mute)
+            
+        return mutes
+
     # Unmute is to remove a mute from our cache and database
     def unmute(self, guildid, userid):
 
@@ -744,8 +773,9 @@ class Client(commands.Bot):
 
         self.db.run(sql)
         self.mute_cache[guildid][userid]['active'] = False
-        
+
         self.db.commit()
+
 
     # Hackban is to add a user to the hackban cache and database
     def hackban(self, guildid, userid, reason):
@@ -773,6 +803,8 @@ class Client(commands.Bot):
         sql = f"SELECT * FROM hackbans WHERE guildid={guildid}"
 
         rows = self.db.run(sql)
+
+        self.db.commit()
 
         return rows
 

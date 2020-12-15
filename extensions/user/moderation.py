@@ -634,7 +634,6 @@ class moderation(commands.Cog, name='Moderation'):
         # send the notify to the user
         await user.send(embed=emb)
 
-
     # warns command to list a users warn
     @commands.check_any(commands.has_permissions(ban_members=True), commands.check(check_modchannel))
     @commands.command(name='warns', aliases=['warn-list'], help='List a user\'s warns.', usage='`[Userid or Mention]`')
@@ -753,7 +752,7 @@ class moderation(commands.Cog, name='Moderation'):
             # the invoker does not have permission to mute the user
             emb = discord.Embed(title=f"{self.crossemoji} Member could not be muted!",colour=0xFCFCFC)
             emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
-            return await ctx.send(emb=emb)        
+            return await ctx.send(embed=emb)        
 
         # get the current time
         now = datetime.datetime.now()
@@ -824,14 +823,12 @@ class moderation(commands.Cog, name='Moderation'):
         emb.add_field(name="Details", value=f"Muted by: {ctx.author.mention}\nReason: {reason}")
         await ctx.send(embed=emb)
 
-        emb2 = discord.Embed(title=f"Muted!", description=f'You\'ve been muted for, **`{h.precisedelta(mutedur)}`**', color=0xFCFCFC)
+        emb2 = discord.Embed(title=f"Muted!", description=f'You\'ve been muted in {ctx.guild} for, **`{h.precisedelta(mutedur)}`**', color=0xFCFCFC)
         emb2.add_field(name='Reason', value=reason)
         await user.send(embed=emb2)
 
-    """
-    # TODO FIX THIS FOR MULTI SERVER
     # mutelist command to list mutes
-    @commands.check_any(commands.has_permissions(mute_members=True), commands.check(has_helper))
+    @commands.check_any(commands.has_permissions(mute_members=True), commands.is_owner())
     @commands.command(name='mutelist', aliases=['mutes'], help='List all the mutes in the server.')
     async def _mutelist(self,ctx):
 
@@ -845,7 +842,7 @@ class moderation(commands.Cog, name='Moderation'):
                 self.mention = f"<@!{id}>"
 
         # get all the mutes
-        mutelist = getmutes()
+        mutelist = self.client.fetch_mutes(ctx.guild.id)
 
         # create an embed
         emb = discord.Embed(title='Mutes', description=f"There are currently {len(mutelist)} active mutes.", color=0xFCFCFC)
@@ -854,12 +851,17 @@ class moderation(commands.Cog, name='Moderation'):
         # add a field for ever mute
         for mute in mutelist:
             
-            mod = get(ctx.guild.members, id=mute[1])
-            usr = get(ctx.guild.members, id=mute[0])
+
+            mod = get(ctx.guild.members, id=mute[4])
+            usr = get(ctx.guild.members, id=mute[1])
             
             if usr is None:
 
                 usr = userLeft(mute[0])
+            
+            if mod is None:
+
+                mod = userLeft(mute[4])
 
 
             reason = mute[2]
@@ -871,7 +873,6 @@ class moderation(commands.Cog, name='Moderation'):
             muteNumber += 1
         
         await ctx.send(embed=emb)
-    """
 
     # unmute command to unmute users in the server
     @commands.check_any(commands.has_permissions(manage_roles=True), commands.is_owner())
@@ -898,7 +899,7 @@ class moderation(commands.Cog, name='Moderation'):
         emb.add_field(name="Details", value=f"Unmuted by: {ctx.author.mention}")
         await ctx.send(embed=emb)
 
-        emb2 = discord.Embed(title=f"Unmuted!", description=f'You\'ve been Unmuted', color=0xFCFCFC)
+        emb2 = discord.Embed(title=f"Unmuted!", description=f'You\'ve been Unmuted in {ctx.guild}', color=0xFCFCFC)
         await user.send(embed=emb2)
 
     """

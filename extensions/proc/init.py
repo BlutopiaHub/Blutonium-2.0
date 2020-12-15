@@ -16,6 +16,9 @@ userexts  = [x.split('.py')[0] for x in os.listdir('./extensions/user') if x.end
 # get all the event extensions
 eventexts = [x.split('.py')[0] for x in os.listdir('./extensions/event') if x.endswith('.py')]
 
+# get all the loop extensions
+loopexts = [x.split('.py')[0] for x in os.listdir('./extensions/loop') if x.endswith('.py')]
+
 # this function runs with the client passed in. This way we can use our client variable while loading the extension
 def setup(client:Client):
 
@@ -24,7 +27,6 @@ def setup(client:Client):
         # try and load the extension
         try:
             client.load_extension(f'extensions.sys.{ext}')
-            client.dispatch('extension_load',f'extensions.sys.{ext}', datetime.datetime.now())
         
         # print console feedback
             print(f'Extension {ext} was loaded successfully')
@@ -41,7 +43,6 @@ def setup(client:Client):
         # try and load the extension
         try:
             client.load_extension(f'extensions.user.{ext}')
-            client.dispatch('extension_load', f'extensions.user.{ext}', datetime.datetime.now())
 
         # print feedback to the console
             print(f'Extension {ext} was loaded successfully')
@@ -57,7 +58,6 @@ def setup(client:Client):
         # try and load the extension
         try:
             client.load_extension(f'extensions.event.{ext}')
-            client.dispatch('extension_load',f'extensions.event.{ext}', datetime.datetime.now())
         
         # print console feedback
             print(f'Extension {ext} was loaded successfully')
@@ -67,7 +67,22 @@ def setup(client:Client):
 
             # print the error to console
             print(f'Extension {ext} could not be loaded {err}')
-    
+   
+    # for all all the loop extensions
+    for ext in loopexts:
+        # try and load the extension
+        try:
+            client.load_extension(f'extensions.loop.{ext}')
+        
+        # print console feedback
+            print(f'Extension {ext} was loaded successfully')
+        
+        # in the event of an exception
+        except Exception as err:
+
+            # print the error to console
+            print(f'Extension {ext} could not be loaded {err}') 
+            
     # add an endline
     print("\n")       
 
