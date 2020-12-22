@@ -6,4 +6,4 @@ PgDb = 'bet'
 PgPwrd = 'pw'
 PgHost = 'local'
 
-clientVer = "2.0-Beta0.27"
+clientVer = "2.0-Beta0.28"
