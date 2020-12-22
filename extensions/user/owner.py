@@ -81,6 +81,10 @@ def guildembed(guild):
 # define the cog class
 class owner(commands.Cog, name='Owner'):
 
+    """
+    Commands that can only be used by the bot owner.
+    """
+
     # init code
     def __init__(self,client):
 

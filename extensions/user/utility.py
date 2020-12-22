@@ -35,7 +35,7 @@ class helpCommand(commands.MinimalHelpCommand):
         return '{0.qualified_name} {0.signature}'.format(command)
 
     async def send_bot_help(self, mapping):
-        self.COLOUR = 0xFCFCFC
+        self.COLOUR = 0x2F3136
         embed = discord.Embed(title='Bot Commands', colour=self.COLOUR)
         description = self.context.bot.description
         if description:
@@ -56,7 +56,7 @@ class helpCommand(commands.MinimalHelpCommand):
         await self.get_destination().send(embed=embed)
 
     async def send_cog_help(self, cog):
-        self.COLOUR = 0xFCFCFC
+        self.COLOUR = 0x2F3136
         embed = discord.Embed(title=f'{cog.qualified_name.capitalize()} Commands', colour=self.COLOUR)
         if cog.description:
             embed.description = cog.description
@@ -70,7 +70,7 @@ class helpCommand(commands.MinimalHelpCommand):
         await self.get_destination().send(embed=embed)
 
     async def send_group_help(self, group):
-        self.COLOUR = 0xFCFCFC
+        self.COLOUR = 0x2F3136
         embed = discord.Embed(title=group.qualified_name, colour=self.COLOUR)
         if group.help:
             embed.description = group.help
@@ -85,7 +85,7 @@ class helpCommand(commands.MinimalHelpCommand):
 
     async def send_command_help(self, command):
 
-        embed = discord.Embed(title=f"{self.get_command_signature(command)}", description=command.short_doc, color=0xFCFCFC)
+        embed = discord.Embed(title=f"{self.get_command_signature(command)}", description=command.short_doc, colour=0x2F3136)
 
         embed.set_footer(text=self.get_ending_note())
         await self.get_destination().send(embed=embed)
@@ -123,6 +123,10 @@ class snipedMessage():
 # define the cog class
 class utility(commands.Cog):
 
+    """
+    Commands for general use.
+    """
+
     # init code
     def __init__(self, client):
         
@@ -158,7 +162,7 @@ class utility(commands.Cog):
         self.sniped[message.channel.id] = snipedMessage(message)
 
     # snipe command is to fetch the last deleted message
-    @commands.command(name='snipe',aliases=['snp'])
+    @commands.command(name='snipe',aliases=['snp'], help="Fetch the last deleted message from the channel.")
     async def _snipe(self,ctx):
 
         # try and get the current sniped message for this channnel
@@ -204,7 +208,7 @@ class utility(commands.Cog):
             return await ctx.send("``Could not find a sniped message``")
 
     # bot info command is to fetch info about the bot
-    @commands.command(name='botinfo', aliases=['stats', 'binfo', 'about'])
+    @commands.command(name='botinfo', aliases=['stats', 'binfo', 'about'], help="Get information about the bot.")
     async def _botinfo(self,ctx):
 
         # get the server count of the bot
@@ -244,7 +248,7 @@ class utility(commands.Cog):
         await ctx.send(embed = emb)
 
     # uptime command is to get the bot uptime and extension uptimes
-    @commands.command(name='uptime', aliases=['ut'])
+    @commands.command(name='uptime', aliases=['ut'], help="Get the uptime of the client and the extensions that are loaded.")
     async def _uptime(self,ctx):
 
         # get the extension cache
@@ -271,7 +275,7 @@ class utility(commands.Cog):
         await ctx.send(embed = emb)
 
     # ping command is to get the bot, ws, and db ping
-    @commands.command(name='ping', aliases=['pong'])
+    @commands.command(name='ping', aliases=['pong'], help="Get the latencey for the bot messages, websocket, and database.")
     async def _ping(self,ctx):
         
         # get the current time
@@ -304,7 +308,7 @@ class utility(commands.Cog):
         await msg.edit(embed=emb, content='\u2002')
 
     # invite command is to get the invite link for the bot and support server
-    @commands.command(name='invite', aliases=['inv', 'support'], help='Gets the invite link to the bot and the support server for blutonium')
+    @commands.command(name='invite', aliases=['inv', 'support'], help='Gets the invite link to the bot and the support server for blutonium.')
     async def _invite(self,ctx):
 
         # create our embed that we will send to the user
@@ -317,7 +321,7 @@ class utility(commands.Cog):
         await ctx.send(embed=emb)
 
     # servericon command is to fetch the icon of the guild
-    @commands.command(name='servericon', aliases=['sicon', 'sic'], help='Fetch the icon of the current guild')
+    @commands.command(name='servericon', aliases=['sicon', 'sic'], help='Fetch the icon of the current guild.')
     async def _servericon(self,ctx):
 
         # request the server icon
@@ -343,9 +347,6 @@ class utility(commands.Cog):
 
         # send the file
         await ctx.send(file=file)
-
-    #
-
 
 # setup function is called when the client loads the extension
 def setup(client):

@@ -8,6 +8,10 @@ from client import Client
 # define cog class
 class sys(commands.Cog, name='System'):
 
+    """
+    Commands to manage the Client and do important things. 
+    """
+
     # init code
     def __init__(self,client):
 
@@ -16,7 +20,7 @@ class sys(commands.Cog, name='System'):
 
     # load command to load extensions
     @commands.is_owner()
-    @commands.command(name='load',aliases=['le', 'lo'])
+    @commands.command(name='load',aliases=['le', 'lo'], usage='`[Folder]` `[extension]`', help="Load an extension")
     async def _load(self,ctx,*args):
         
         # get all the extension direcdtories
@@ -46,7 +50,7 @@ class sys(commands.Cog, name='System'):
 
     # unload command to unload extensions
     @commands.is_owner()
-    @commands.command(name='unload',aliases=['ule', 'ul'])
+    @commands.command(name='unload',aliases=['ule', 'ul'], usage='`[Folder]` `[extension]`', help="Unload an extension")
     async def _unload(self,ctx,*args):
         
         # get all the extension direcdtories
@@ -76,7 +80,7 @@ class sys(commands.Cog, name='System'):
 
     # reload command to reload extensions
     @commands.is_owner()
-    @commands.command(name='reload',aliases=['rl', 'rle'])
+    @commands.command(name='reload',aliases=['rl', 'rle'], usage='`[Folder]` `[extension]`', help="Reload an extension")
     async def _reload(self,ctx,*args):
         
         # get all the extension direcdtories

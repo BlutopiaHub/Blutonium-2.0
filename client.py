@@ -776,7 +776,6 @@ class Client(commands.Bot):
 
         self.db.commit()
 
-
     # Hackban is to add a user to the hackban cache and database
     def hackban(self, guildid, userid, reason):
 
@@ -808,4 +807,54 @@ class Client(commands.Bot):
 
         return rows
 
+    # Warn command is to add a warn to a user in a specific guild
+    def warn(self, guildid, userid, caseid, modid, reason):
 
+        sql = f"INSERT INTO warns (guildid, userid, caseid, modid, reason) VALUES ({guildid}, {userid}, {caseid}, {modid}, '{reason}') ON CONFLICT DO NOTHING"
+
+        res = self.db.run(sql)
+
+        self.db.commit()
+    
+    # Unwarn command is to remove a specific warn from a user
+    def unwarn(self, guildid, caseid):
+
+        sql = f"DELETE FROM warns WHERE caseid = {caseid} AND guildid = {guildid}"
+
+        self.db.run(sql)
+
+        self.db.commit()
+
+    # Fetch_warns is to fetch all a users warns in a specific guild
+    def fetch_warns(self, guildid, userid):
+
+        sql = f"SELECT * FROM warns WHERE userid={userid} AND guildid={guildid}"
+
+        rows = self.db.run(sql)
+
+        return rows
+
+    # Fetch_warns_given is to fetch all the warns that a user has issued in a given server
+    def fetch_warns_given(self, guildid, modid):
+
+        sql = f"SELECT * FROM warns WHERE modid = {modid} AND guildid = {guildid}"
+
+        rows = self.db.run(sql)
+        
+        return
+
+    # fetch_all_warns gets all the warns for the specific guild
+    def fetch_all_warns(self, guildid):
+
+        sql = f"SELECT * FROM warns WHERE guildid={guildid}"
+
+        rows = self.db.run(sql)
+
+        return rows
+    
+    # override our run command to add some of our own spice
+    def run(self, *args, **kwargs):
+
+        print("Client starting...\n")
+        super().run(*args, **kwargs)
+        print("Thank you for using Blutonium Client")
