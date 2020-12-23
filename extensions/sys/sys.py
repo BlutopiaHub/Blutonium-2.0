@@ -8,15 +8,24 @@ from client import Client
 # define cog class
 class sys(commands.Cog, name='System'):
 
+    """
+    Commands to manage the Client and do important things. 
+    """
+
     # init code
     def __init__(self,client):
 
         # define the global client variable
         self.client : Client = client
 
+    # reloadall command to reload all extensions
+    @commands.is_owner()
+    @commands.command(name='reloadall', aliases=['rlall', 'rla', 'restart'], help='Reload every extension')
+
+
     # load command to load extensions
     @commands.is_owner()
-    @commands.command(name='load',aliases=['le', 'lo'])
+    @commands.command(name='load',aliases=['le', 'lo'], usage='`[Folder]` `[extension]`', help="Load an extension")
     async def _load(self,ctx,*args):
         
         # get all the extension direcdtories
@@ -46,7 +55,7 @@ class sys(commands.Cog, name='System'):
 
     # unload command to unload extensions
     @commands.is_owner()
-    @commands.command(name='unload',aliases=['ule', 'ul'])
+    @commands.command(name='unload',aliases=['ule', 'ul'], usage='`[Folder]` `[extension]`', help="Unload an extension")
     async def _unload(self,ctx,*args):
         
         # get all the extension direcdtories
@@ -76,7 +85,7 @@ class sys(commands.Cog, name='System'):
 
     # reload command to reload extensions
     @commands.is_owner()
-    @commands.command(name='reload',aliases=['rl', 'rle'])
+    @commands.command(name='reload',aliases=['rl', 'rle'], usage='`[Folder]` `[extension]`', help="Reload an extension")
     async def _reload(self,ctx,*args):
         
         # get all the extension direcdtories
@@ -130,7 +139,7 @@ class sys(commands.Cog, name='System'):
 
         
         # if the user is already an owner
-        if user.id in self.client.owner_cache():
+        if user.id in self.client.owner_cache:
 
             # tell em that
             return await ctx.send(f"User **{user}** is already an owner")
@@ -144,6 +153,7 @@ class sys(commands.Cog, name='System'):
     # owner -> remove subcommand
     @_owner.command(name='remove', aliases=['rem', 'del', 'unset', 'delete'])
     async def _rem_owner(self,ctx,*args):
+        
 
         # get the input after the sub command to find the user
         user = self.client.fetch_member(ctx," ".join(args[0:]))
@@ -155,7 +165,7 @@ class sys(commands.Cog, name='System'):
             return await ctx.send("User not found!")
 
         # if the user is not an owner
-        if user.id not in self.client.owner_cache():
+        if user.id not in self.client.owner_cache:
 
             # tell em that 
             return await ctx.send(f"User **{user}** is not an owner")

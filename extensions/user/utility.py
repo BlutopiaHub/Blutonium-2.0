@@ -5,6 +5,7 @@ from io import BytesIO
 import discord, datetime, platform, glob, time, requests
 from discord.ext import commands
 from discord.utils import get
+from client import Client
 import humanize as h
 from os.path import  dirname, basename, isfile, join
 from setup import clientVer
@@ -35,7 +36,7 @@ class helpCommand(commands.MinimalHelpCommand):
         return '{0.qualified_name} {0.signature}'.format(command)
 
     async def send_bot_help(self, mapping):
-        self.COLOUR = 0xFCFCFC
+        self.COLOUR = 0x2F3136
         embed = discord.Embed(title='Bot Commands', colour=self.COLOUR)
         description = self.context.bot.description
         if description:
@@ -56,7 +57,7 @@ class helpCommand(commands.MinimalHelpCommand):
         await self.get_destination().send(embed=embed)
 
     async def send_cog_help(self, cog):
-        self.COLOUR = 0xFCFCFC
+        self.COLOUR = 0x2F3136
         embed = discord.Embed(title=f'{cog.qualified_name.capitalize()} Commands', colour=self.COLOUR)
         if cog.description:
             embed.description = cog.description
@@ -70,7 +71,7 @@ class helpCommand(commands.MinimalHelpCommand):
         await self.get_destination().send(embed=embed)
 
     async def send_group_help(self, group):
-        self.COLOUR = 0xFCFCFC
+        self.COLOUR = 0x2F3136
         embed = discord.Embed(title=group.qualified_name, colour=self.COLOUR)
         if group.help:
             embed.description = group.help
@@ -85,7 +86,7 @@ class helpCommand(commands.MinimalHelpCommand):
 
     async def send_command_help(self, command):
 
-        embed = discord.Embed(title=f"{self.get_command_signature(command)}", description=command.short_doc, color=0xFCFCFC)
+        embed = discord.Embed(title=f"{self.get_command_signature(command)}", description=command.short_doc, colour=0x2F3136)
 
         embed.set_footer(text=self.get_ending_note())
         await self.get_destination().send(embed=embed)
@@ -123,11 +124,15 @@ class snipedMessage():
 # define the cog class
 class utility(commands.Cog):
 
+    """
+    Commands for general use.
+    """
+
     # init code
     def __init__(self, client):
         
         # set the global client variable
-        self.client = client
+        self.client : Client = client
 
         # set the global "sniped" dict variable. This will be needed to store our sniped messages in the snipe command
         self.sniped = {}
@@ -158,7 +163,7 @@ class utility(commands.Cog):
         self.sniped[message.channel.id] = snipedMessage(message)
 
     # snipe command is to fetch the last deleted message
-    @commands.command(name='snipe',aliases=['snp'])
+    @commands.command(name='snipe',aliases=['snp'], help="Fetch the last deleted message from the channel.")
     async def _snipe(self,ctx):
 
         # try and get the current sniped message for this channnel
@@ -204,7 +209,7 @@ class utility(commands.Cog):
             return await ctx.send("``Could not find a sniped message``")
 
     # bot info command is to fetch info about the bot
-    @commands.command(name='botinfo', aliases=['stats', 'binfo', 'about'])
+    @commands.command(name='botinfo', aliases=['stats', 'binfo', 'about'], help="Get information about the bot.")
     async def _botinfo(self,ctx):
 
         # get the server count of the bot
@@ -244,7 +249,7 @@ class utility(commands.Cog):
         await ctx.send(embed = emb)
 
     # uptime command is to get the bot uptime and extension uptimes
-    @commands.command(name='uptime', aliases=['ut'])
+    @commands.command(name='uptime', aliases=['ut'], help="Get the uptime of the client and the extensions that are loaded.")
     async def _uptime(self,ctx):
 
         # get the extension cache
@@ -271,7 +276,7 @@ class utility(commands.Cog):
         await ctx.send(embed = emb)
 
     # ping command is to get the bot, ws, and db ping
-    @commands.command(name='ping', aliases=['pong'])
+    @commands.command(name='ping', aliases=['pong'], help="Get the latencey for the bot messages, websocket, and database.")
     async def _ping(self,ctx):
         
         # get the current time
@@ -303,8 +308,53 @@ class utility(commands.Cog):
         # send the client latency
         await msg.edit(embed=emb, content='\u2002')
 
+    # userinfo command is to get information on a user and display it
+    @commands.command(name='userinfo', aliases=['ui', 'uinfo', 'profile', 'whois', ''])
+    async def _userinfo(self, ctx, *, user=None):
+
+        # try and get the user using the input given
+        user : discord.Member = self.client.fetch_member(ctx,user)
+        
+        # for our first peice of user info were gonna get the permissions that the user has in the guild
+        # first we make a list named perms, this will contain all the permissions that we want to display.
+        perms = []
+
+        # for every permission that the user has in the guild
+        for perm in user.guild_permissions:
+
+            # make a list of permissions that we want to be displayed if the user has them
+            key = ['ban members', 'kick members', 'manage messages', 'manage guild', 'mention everyone', 'administrator', 'send messages']
+
+            # the guild_permissions item includes every permission in a tuple with wether the permission is allowed
+            # if the second object in the tuple is True that means the permission is allwed for the user
+            if perm[1]:
+
+                # get the name of the permission
+                name = perm[0]
+
+                # permission names by defauly are formatted like "Manage_Messages" we want to remove the underscore and add a space instead
+                # replace the underscore by a space
+                name = name.replace('_', ' ')
+
+                # if the name is in the list of permissions that we want to display
+                if name in key:
+
+                    # add the name to the list that contains all the permissions we want to display
+                    perms.append(f'{name}\n')
+                
+                # if the name is not in the list of permisssions we want to display
+                else:
+
+                    # just continue
+                    pass
+        
+        # make a method called checkfornitro. This checks if the user's avatar is animated and also checks if the user has a nitro booster role
+        
+
+        
+
     # invite command is to get the invite link for the bot and support server
-    @commands.command(name='invite', aliases=['inv', 'support'], help='Gets the invite link to the bot and the support server for blutonium')
+    @commands.command(name='invite', aliases=['inv', 'support'], help='Gets the invite link to the bot and the support server for blutonium.')
     async def _invite(self,ctx):
 
         # create our embed that we will send to the user
@@ -317,7 +367,7 @@ class utility(commands.Cog):
         await ctx.send(embed=emb)
 
     # servericon command is to fetch the icon of the guild
-    @commands.command(name='servericon', aliases=['sicon', 'sic'], help='Fetch the icon of the current guild')
+    @commands.command(name='servericon', aliases=['sicon', 'sic'], help='Fetch the icon of the current guild.')
     async def _servericon(self,ctx):
 
         # request the server icon
@@ -343,9 +393,6 @@ class utility(commands.Cog):
 
         # send the file
         await ctx.send(file=file)
-
-    #
-
 
 # setup function is called when the client loads the extension
 def setup(client):

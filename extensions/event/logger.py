@@ -178,12 +178,27 @@ class logger(commands.Cog, name="logger"):
         else: 
             return
 
+        moderator = None
+
+        async for entry in msg.guild.audit_logs(limit=13, action=discord.AuditLogAction.message_delete):
+
+            if entry.target == msg.author:
+
+                moderator = entry.user
+                break
+            
+            else:
+                moderator = None
+
         # make the embed
-        emb = discord.Embed(title=f'{msg.guild}',description=f'A message was deleted in {msg.channel.mention}',colour=0x2F3136,timestamp=datetime.datetime.utcnow())
+        if moderator is None:
+            emb = discord.Embed(title=f'{msg.guild}',description=f'{msg.author.mention}\'s message in {msg.channel.mention} was deleted',colour=0x2F3136,timestamp=datetime.datetime.utcnow())
+        else:
+            emb = discord.Embed(title=f'{msg.guild}',description=f'A message from {msg.author.mention} was deleted by {moderator.mention} in {msg.channel.mention} ',colour=0x2F3136,timestamp=datetime.datetime.utcnow())
+
 
         # set all the embed fields and variables
-        emb.add_field(name='Message Deleted',value=f'{msg.content}',inline=True)
-        emb.add_field(name='Message Author',value=f'{msg.author.mention}',inline=True)
+        emb.add_field(name='Message Content',value=f'{msg.content}',inline=True)
         emb.set_footer(text=f'Msg ID: {msg.id}')
         emb.set_thumbnail(url=msg.author.avatar_url)
 
@@ -195,7 +210,7 @@ class logger(commands.Cog, name="logger"):
             channel = get(msg.guild.channels, id=chanId)
 
             # send the log
-            channel.send(embed=emb)
+            await channel.send(embed=emb)
         except:
             return
     

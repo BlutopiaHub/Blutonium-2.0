@@ -9,6 +9,7 @@ from setup import TOKEN
 from collections import  defaultdict
 from client import Client
 
+# request a user from the discord API
 def request_discord_user(userid):
     base_url= 'https://discord.com/api/v8'
     headers = {'Authorization': 'Bot ' + f'{TOKEN}'}
@@ -21,7 +22,7 @@ def request_discord_user(userid):
 class moderation(commands.Cog, name='Moderation'):
 
     """
-    Moderation Commands
+    Commands to manage and moderate your server!
     """
 
     # init code 
@@ -417,7 +418,7 @@ class moderation(commands.Cog, name='Moderation'):
         except Exception as err:
 
             # make an embed
-            emb = discord.Embed(title=f"{self.crossemoji} Member could not be unbanned", color=0xFCFCFC)
+            emb = discord.Embed(title=f"{self.crossemoji} Member could not be unbanned", colour=0x2F3136)
 
             # add the error to the embed
             emb.add_field(name="Error",value=f"``{err}``")
@@ -432,7 +433,7 @@ class moderation(commands.Cog, name='Moderation'):
         try:
 
             # Create the embed
-            banembed = discord.Embed(title=f"{self.checkemoji} Member Unbanned succesfully", description=f"{member.mention}", color=0xFCFCFC)
+            banembed = discord.Embed(title=f"{self.checkemoji} Member Unbanned succesfully", description=f"{member.mention}", colour=0x2F3136)
 
             # Add the user id field
             banembed.add_field(name="ID",value=member.id,inline=True)
@@ -585,10 +586,10 @@ class moderation(commands.Cog, name='Moderation'):
 
             await ctx.send(f"{self.crossemoji} **Please input a user to KICK**")
 
-    # TODO FIX THIS FOR ALL SERVERS PLUS ADD CFG FOR AUTOBAN
-    """
+    # TODO ADD CFG FOR AUTOBAN
+ 
     # warn command to warn users
-    @commands.check_any(commands.has_permissions(ban_members=True), commands.check(check_modchannel))
+    @commands.check_any(commands.has_permissions(ban_members=True), commands.is_owner())
     @commands.command(name='warn', help='Warn a user.', usage='`[Userid or Mention]` `[Reason]`')
     async def _warn(self,ctx,user,*,reason="No reason provided"):
 
@@ -601,7 +602,7 @@ class moderation(commands.Cog, name='Moderation'):
 
 
         # get the ammount of warns that the user has 
-        warns = getwarns(user.id)
+        warns = self.client.fetch_warns(ctx.guild.id, user.id)
 
         # if the invokers top role is below the users top role
         if ctx.author.roles[-1].position < user.roles[-1].position:
@@ -617,10 +618,10 @@ class moderation(commands.Cog, name='Moderation'):
         caseid = int(time.time())
 
         # add the warn 
-        addwarn(ctx, user.id, reason, caseid)
+        self.client.warn(ctx.guild.id, user.id, caseid, ctx.author.id, reason)
 
         # create the feedback for the moderator
-        emb = discord.Embed(title="✅ Warn sent successfully", color=0xFCFCFC)
+        emb = discord.Embed(title="✅ Warn sent successfully", colour=0x2F3136)
         emb.set_thumbnail(url=user.avatar_url)
         emb.add_field(name=f"{user}", value=f"ID: {user.id}\nWarns: {len(warns)} (+1)", inline=True)
         emb.add_field(name='Warn', value=f"Reason: {reason}\nCase ID: {caseid}")
@@ -628,14 +629,14 @@ class moderation(commands.Cog, name='Moderation'):
         await ctx.send(embed=emb)
 
         # create the warning notifier embed
-        emb = discord.Embed(title=f"Warning", description="You've recieved a warning.", color=0xFCFCFC, timestamp=datetime.datetime.utcnow())
+        emb = discord.Embed(title=f"Warning", description=f"You've recieved a warning in {ctx.guild}.", colour=0x2F3136, timestamp=datetime.datetime.utcnow())
         emb.add_field(name='reason', value=reason)
 
         # send the notify to the user
         await user.send(embed=emb)
 
     # warns command to list a users warn
-    @commands.check_any(commands.has_permissions(ban_members=True), commands.check(check_modchannel))
+    @commands.check_any(commands.has_permissions(ban_members=True), commands.is_owner())
     @commands.command(name='warns', aliases=['warn-list'], help='List a user\'s warns.', usage='`[Userid or Mention]`')
     async def _warns(self,ctx,user):
 
@@ -647,37 +648,44 @@ class moderation(commands.Cog, name='Moderation'):
                 self.mention = "Not found!"
 
         # get the user
-        user = getusersimple(ctx, user)
+        user = self.client.fetch_simple_member(ctx,user)
 
         if user is None:
 
             return await ctx.send("❌ **User not found!**")    
 
         # get the users warns 
-        warns = getwarns(user.id)
+        warns = self.client.fetch_warns(ctx.guild.id, user.id)
 
         # create the embed 
-        emb = discord.Embed(title=f'{user} warns', description=f'User has {len(warns)} warns', color=0xFCFCFC)
+        emb = discord.Embed(title=f'{user} warns', description=f'User has {len(warns)} warns', colour=0x2F3136)
         emb.set_thumbnail(url=user.avatar_url)
+
+        warnnumber = 0
 
         # create fields for each warn
         for x in warns:
 
+            warnnumber += 1
             # get the mod that warned the user
-            if x[4] is None:
+            if x[3] is None:
                 mod = fakeMod()
             else:
-                mod = get(ctx.guild.members, id=x[4])
+                mod = get(ctx.guild.members, id=x[3])
 
-            emb.add_field(name=f"Warn #{x[0]}", value=f'Reason: {x[2]}\nCase ID: {x[3]}\nIssuer: {mod.mention}')
+            if mod is None:
+                mod = fakeMod()
+
+            emb.add_field(name=f"Warn #{warnnumber}", value=f'Reason: {x[4]}\nCase ID: {x[2]}\nIssuer: {mod.mention}')
 
         # send the embed
         await ctx.send(embed=emb)
     
     # warns-given commands is to list all the warns taht the moderator has given
-    @commands.check_any(commands.has_permissions(ban_members=True), commands.check(check_modchannel))
+    @commands.check_any(commands.has_permissions(ban_members=True), commands.is_owner())
     @commands.command(name='warns-given', aliases=['gwarns'], help="List all the warns that you have issued")
     async def _warns_given(self,ctx):
+
         # make fake  user class for convenicnce later
         class fakeUser():
 
@@ -687,14 +695,18 @@ class moderation(commands.Cog, name='Moderation'):
 
 
         # get the users warns 
-        warns = getgivenwarns(ctx.author.id)
+        warns = self.client.fetch_warns_given(ctx.guild.id, ctx.author.id)
 
         # create the embed 
-        emb = discord.Embed(title=f'{ctx.author} warns given', description=f'User has issued {len(warns)} warns', color=0xFCFCFC)
+        emb = discord.Embed(title=f'{ctx.author} warns given', description=f'User has issued {len(warns)} warns', colour=0x2F3136)
         emb.set_thumbnail(url=ctx.author.avatar_url)
+
+        warnnumber = 0
 
         # create fields for each warn
         for x in warns:
+
+            warnnumber +=1
 
             # get the mod that warned the user
             if x[1] is None:
@@ -706,37 +718,36 @@ class moderation(commands.Cog, name='Moderation'):
 
                 user = fakeUser()
 
-            emb.add_field(name=f"Warn #{x[0]}", value=f'**Reason:** {x[2]}\n**Case ID:** {x[3]}\n**Issued to:** {user.mention}')
+            emb.add_field(name=f"Warn #{warnnumber}", value=f'**Reason:** {x[4]}\n**Case ID:** {x[2]}\n**Issued to:** {user.mention}')
 
         # send the embed
         await ctx.send(embed=emb)
 
     # warn-remove command to remove a warn
-    @commands.check_any(commands.has_permissions(ban_members=True), commands.check(has_mod), commands.check(check_modchannel))
+    @commands.check_any(commands.has_permissions(ban_members=True), commands.is_owner())
     @commands.command(name='warn-remove', aliases=['warn-delete', 'remwarn', 'warndel'], help='Remove a warn from a user.', usage='`[CaseID]`')
     async def _warnRemove(self,ctx,caseId):
 
         # get all the warns
-        warns = fetchAllWarns()
+        warns = self.client.fetch_all_warns(ctx.guild.id)
 
         # set the variable for the target warn to delete
         Delwarn = None
 
         # set the target warn to this warn if the warnID is equal to the selected warnID
         for warn in warns: 
-            if warn[3] == int(caseId):
+
+            if warn[2] == int(caseId):
             
                 Delwarn = warn 
 
         if Delwarn is None:
             await ctx.send("❌ **Warn not found!**")
         else:
-            remwarn(Delwarn[3])
-            emb = discord.Embed(title='✅ Warn Deleted', color=0xFCFCFC)
-            emb.add_field(name=f"Warn #{Delwarn[0]}", value=f'Reason: {Delwarn[2]}\nCase ID: {Delwarn[3]}' )
+            self.client.unwarn(ctx.guild.id,Delwarn[2])
+            emb = discord.Embed(title='✅ Warn Deleted', colour=0x2F3136)
+            emb.add_field(name=f"Warn Stats", value=f'Reason: {Delwarn[4]}\nCase ID: {Delwarn[2]}' )
             await ctx.send(embed=emb)
-
-    """
 
     # mute command to mute a user
     @commands.check_any(commands.has_permissions(manage_roles=True), commands.is_owner())
@@ -818,12 +829,12 @@ class moderation(commands.Cog, name='Moderation'):
         await user.add_roles(muterole)
         self.client.mute(ctx.guild.id, user.id, ctx.author.id, reason, mutedur)
 
-        emb = discord.Embed(title=f"✅ Mute successful", description=f'{user.mention} was muted for **`{h.precisedelta(mutedur)}`**', color=0xFCFCFC)
+        emb = discord.Embed(title=f"✅ Mute successful", description=f'{user.mention} was muted for **`{h.precisedelta(mutedur)}`**', colour=0x2F3136)
         emb.set_thumbnail(url=user.avatar_url)
         emb.add_field(name="Details", value=f"Muted by: {ctx.author.mention}\nReason: {reason}")
         await ctx.send(embed=emb)
 
-        emb2 = discord.Embed(title=f"Muted!", description=f'You\'ve been muted in {ctx.guild} for, **`{h.precisedelta(mutedur)}`**', color=0xFCFCFC)
+        emb2 = discord.Embed(title=f"Muted!", description=f'You\'ve been muted in {ctx.guild} for, **`{h.precisedelta(mutedur)}`**', colour=0x2F3136)
         emb2.add_field(name='Reason', value=reason)
         await user.send(embed=emb2)
 
@@ -845,7 +856,7 @@ class moderation(commands.Cog, name='Moderation'):
         mutelist = self.client.fetch_mutes(ctx.guild.id)
 
         # create an embed
-        emb = discord.Embed(title='Mutes', description=f"There are currently {len(mutelist)} active mutes.", color=0xFCFCFC)
+        emb = discord.Embed(title='Mutes', description=f"There are currently {len(mutelist)} active mutes.", colour=0x2F3136)
         
         muteNumber = 1
         # add a field for ever mute
@@ -894,35 +905,13 @@ class moderation(commands.Cog, name='Moderation'):
         await user.remove_roles(muterole)
         self.client.unmute(ctx.guild.id, user.id)
 
-        emb = discord.Embed(title=f"✅ Unmute successful", description=f'{user.mention} was unmuted', color=0xFCFCFC)
+        emb = discord.Embed(title=f"✅ Unmute successful", description=f'{user.mention} was unmuted', colour=0x2F3136)
         emb.set_thumbnail(url=user.avatar_url)
         emb.add_field(name="Details", value=f"Unmuted by: {ctx.author.mention}")
         await ctx.send(embed=emb)
 
-        emb2 = discord.Embed(title=f"Unmuted!", description=f'You\'ve been Unmuted in {ctx.guild}', color=0xFCFCFC)
+        emb2 = discord.Embed(title=f"Unmuted!", description=f'You\'ve been Unmuted in {ctx.guild}', colour=0x2F3136)
         await user.send(embed=emb2)
-
-    """
-    # rules command to show the rules
-    @commands.check_any(commands.check(has_helper), commands.check(check_channel))
-    @commands.command(name='rules', aliases=['r', 'rule'], help='Fetch a rule from the #rules channel.', usage='`[Rule]`')
-    async def _rules(self,ctx,rule):
-        
-        rule = str(float(rule))
-
-        rule = rule.split('.')
-
-
-        try:
-            selected = self.ruledict[int(rule[0])][int(rule[1])]
-        
-    
-            await ctx.send(f"**Rule {rule[0]}.{rule[1]}:**{selected}")
-
-        except KeyError:
-
-            await ctx.send("❌ **Selected rule not found!**")
-    """
 
     # Purge command is to delete a large number of messages
     @commands.check_any(commands.has_permissions(manage_messages=True))
@@ -1030,7 +1019,7 @@ class moderation(commands.Cog, name='Moderation'):
         if int(userid) in hbans:
 
             # create our feedback embed
-            emb = discord.Embed(title=f"{self.crossemoji} User already hackbanned", description='You can\'t hackban someone thats already hackbanned', color=0xFCFCFC)
+            emb = discord.Embed(title=f"{self.crossemoji} User already hackbanned", description='You can\'t hackban someone thats already hackbanned', colour=0x2F3136)
 
             # send our embed
             return await ctx.channel.send(embed=emb)           
@@ -1055,7 +1044,7 @@ class moderation(commands.Cog, name='Moderation'):
         else:
 
             # create our feedback embed
-            emb = discord.Embed(title=f"{self.crossemoji} User is already in the server!", description='You can\'t hackban someone thats already in the server.', color=0xFCFCFC)
+            emb = discord.Embed(title=f"{self.crossemoji} User is already in the server!", description='You can\'t hackban someone thats already in the server.', colour=0x2F3136)
             emb.set_thumbnail(url=usercheck.avatar_url)
             # send our embed
             return await ctx.channel.send(embed=emb)
@@ -1071,7 +1060,7 @@ class moderation(commands.Cog, name='Moderation'):
             # create our feedback embed
             # REF: https://cdn.discordapp.com/avatars/206250435848306692/398c34f643240e91d2e2f34233d29745.png
             
-            emb = discord.Embed(title=f"{res['username']}#{res['discriminator']}", description='User was successfully hackbanned!', color=0xFCFCFC)
+            emb = discord.Embed(title=f"{res['username']}#{res['discriminator']}", description='User was successfully hackbanned!', colour=0x2F3136)
             emb.set_thumbnail(url=f'https://cdn.discordapp.com/avatars/{userid}/{res["avatar"]}.png')
             emb.add_field(name='Reason', value=reason)
 
@@ -1082,7 +1071,7 @@ class moderation(commands.Cog, name='Moderation'):
         else:
         # stop it right there!
 
-            emb = discord.Embed(title=f"{self.crossemoji} User not found!", description='I could not find that user in the discord API', color=0xFCFCFC)
+            emb = discord.Embed(title=f"{self.crossemoji} User not found!", description='I could not find that user in the discord API', colour=0x2F3136)
 
             await ctx.channel.send(embed=emb)
 
@@ -1110,7 +1099,7 @@ class moderation(commands.Cog, name='Moderation'):
         if int(userid) not in hbans:
 
             # create our feedback embed
-            emb = discord.Embed(title=f"{self.crossemoji} User isnt hackbanned", description='You can\'t unhackban someone thats not already hackbanned', color=0xFCFCFC)
+            emb = discord.Embed(title=f"{self.crossemoji} User isnt hackbanned", description='You can\'t unhackban someone thats not already hackbanned', colour=0x2F3136)
 
             # send our embed
             return await ctx.channel.send(embed=emb)           
@@ -1133,7 +1122,7 @@ class moderation(commands.Cog, name='Moderation'):
         else:
 
             # create our feedback embed
-            emb = discord.Embed(title=f"{self.crossemoji} User is already in the server!", description='You can\'t hackban someone thats already in the server.', color=0xFCFCFC)
+            emb = discord.Embed(title=f"{self.crossemoji} User is already in the server!", description='You can\'t hackban someone thats already in the server.', colour=0x2F3136)
 
             # send our embed
             return await ctx.channel.send(embed=emb)
@@ -1146,7 +1135,7 @@ class moderation(commands.Cog, name='Moderation'):
             # remove the userid from the hackban database
             self.client.unhackban(ctx.guild.id, userid)
 
-            emb = discord.Embed(title=f"{res['username']}#{res['discriminator']}", description='User successfully unhackbanned', color=0xFCFCFC)
+            emb = discord.Embed(title=f"{res['username']}#{res['discriminator']}", description='User successfully unhackbanned', colour=0x2F3136)
             emb.set_thumbnail(url=f'https://cdn.discordapp.com/avatars/{userid}/{res["avatar"]}.png')
 
             await ctx.channel.send(embed=emb)
@@ -1155,7 +1144,7 @@ class moderation(commands.Cog, name='Moderation'):
         else:
         # stop it right there!
 
-            emb = discord.Embed(title=f"{self.crossemoji} User not found!", description='I could not find that user in the discord API', color=0xFCFCFC)
+            emb = discord.Embed(title=f"{self.crossemoji} User not found!", description='I could not find that user in the discord API', colour=0x2F3136)
 
             await ctx.channel.send(embed=emb)
 
@@ -1422,6 +1411,5 @@ class moderation(commands.Cog, name='Moderation'):
 
             print(error)
     
-
 def setup(client):  
     client.add_cog(moderation(client))
