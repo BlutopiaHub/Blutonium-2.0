@@ -1,9 +1,9 @@
-TOKEN ='NjI4NjMwNTc5MTA5Mjk4MjIw.XZN_2Q.uu9J9qc_wK_kjC0rKy5q-PkJA90'
-OWNERID = 393165866285662208
+TOKEN ='token'
+OWNERID = 00000000000000000
 
-PgName = 'blutonium'
-PgDb = 'betonium'
-PgPwrd = 'train'
-PgHost = 'localhost'
+PgName = 'blu'
+PgDb = 'bet'
+PgPwrd = 'tr'
+PgHost = 'local'
 
 clientVer = "2.0-Beta0.28"
