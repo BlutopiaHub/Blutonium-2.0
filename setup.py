@@ -6,4 +6,4 @@ PgDb = 'betonium'
 PgPwrd = 'train'
 PgHost = 'localhost'
 
-clientVer = "2.0-Beta0.27"
+clientVer = "2.0-Beta0.28"
