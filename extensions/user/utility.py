@@ -378,7 +378,6 @@ class utility(commands.Cog):
 
                     # add the name to the list that contains all the permissions we want to display
                     perms.append(f'{name}\n')
-
                 # if the name is not in the list of permisssions we want to display
                 else:
 

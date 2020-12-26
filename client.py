@@ -605,8 +605,7 @@ class Client(commands.Bot):
 
         self.db.commit()
 
-        # Fetch_member is to get a member using the user command input.
-
+    # Fetch_member is to get a member using the user command input.
     def fetch_member(self, ctx, inp):
 
         member = None
