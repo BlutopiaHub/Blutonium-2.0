@@ -1,5 +1,8 @@
 # import the required packages
-import os, sys, datetime, setup
+import os
+import setup
+import sys
+
 from client import Client
 
 # print some useful info
@@ -19,8 +22,9 @@ eventexts = [x.split('.py')[0] for x in os.listdir('./extensions/event') if x.en
 # get all the loop extensions
 loopexts = [x.split('.py')[0] for x in os.listdir('./extensions/loop') if x.endswith('.py')]
 
+
 # this function runs with the client passed in. This way we can use our client variable while loading the extension
-def setup(client:Client):
+def setup(client: Client):
 
     # for all all the sys extensions (we need to load these first!!)
     for ext in sysexts:

@@ -1,8 +1,7 @@
 # import the necessary modules
-from ssl import HAS_NEVER_CHECK_COMMON_NAME
-import discord
-from client import Client
 from discord.ext import commands
+from client import Client
+
 
 # create our class for our cog
 class guildEvents(commands.Cog):
@@ -11,11 +10,11 @@ class guildEvents(commands.Cog):
     def __init__(self, client):
 
         # add our global client variable
-        self.client : Client = client
+        self.client: Client = client
 
     # add a listener for members joining a guild
     @commands.Cog.listener()
-    async def on_member_join(self,member):
+    async def on_member_join(self, member):
 
         # get the guild
         guild = member.guild
@@ -31,6 +30,7 @@ class guildEvents(commands.Cog):
 
             # ban the user
             await member.ban(reason='Hackbanned')
+
 
 # setup method runs when the module is loaded
 def setup(client):

@@ -1,7 +1,7 @@
 # import the necessary packages
-import discord, datetime  
 from discord.ext import commands
 from client import Client
+
 
 # define the cog class
 class dbevents(commands.Cog, name="Dbevents"):
@@ -10,21 +10,21 @@ class dbevents(commands.Cog, name="Dbevents"):
     def __init__(self, client):
 
         # create our global client variable
-        self.client : Client = client
+        self.client: Client = client
 
         # create and run our db build method
         self.client.loop.create_task(self.build_database())
 
     # on_join_guild event
     @commands.Cog.listener()
-    async def on_guild_join(self,guild):
+    async def on_guild_join(self, guild):
 
         # genereate database guild data
         await self.client.log_guild(guild)
         
     # on_member_join event
     @commands.Cog.listener()
-    async def on_member_join(self,member):
+    async def on_member_join(self, member):
         
         # generate our user data
         self.client.create_user(member)
@@ -82,6 +82,7 @@ class dbevents(commands.Cog, name="Dbevents"):
 
             # print our feedback
             print("Caches successfully built!")
+
 
 # setup function is called when the client loads the extension
 def setup(client):

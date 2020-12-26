@@ -1,16 +1,18 @@
 # import the required packages
-import discord, itertools, asyncio, datetime
+import discord
+import itertools
 from discord.ext import commands, tasks
 
+
 # define the cog class.
-class presence(commands.Cog,name='presenceProc'):
+class presence(commands.Cog, name='presenceProc'):
 
     # init code
-    def __init__(self,client):
+    def __init__(self, client):
 
         self.client = client
 
-        self.statusIndex = [0,1,2,3,4]
+        self.statusIndex = [0, 1, 2, 3, 4]
 
         # set the displaying status variable as an intertools cycle
         self.displaying = itertools.cycle(self.statusIndex)
@@ -46,7 +48,10 @@ class presence(commands.Cog,name='presenceProc'):
         current_status = statuses[next(self.displaying)]
 
         # change the client status
-        await self.client.change_presence(status=discord.Status.online, activity=discord.Activity(name=current_status[0] ,type=current_status[1]))
+        await self.client.change_presence(status=discord.Status.online,
+                                          activity=discord.Activity(name=current_status[0],
+                                                                    type=current_status[1]))
+
 
 # setup function is called when the client loads the extension.
 def setup(client):
