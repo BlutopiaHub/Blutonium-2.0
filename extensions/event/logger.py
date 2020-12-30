@@ -2,7 +2,7 @@
 import discord
 import datetime
 import pg8000
-from client import Client
+from blutopia import Client
 from discord.ext import commands
 from discord.utils import get
 
@@ -19,9 +19,11 @@ class logger(commands.Cog, name="logger"):
     @commands.Cog.listener()
     async def on_voice_state_update(self, usr: discord.Member, before, after):
 
+        voicechannel = after.channel if before.channel is None else before.channel
+
         try:
             # try get the log data from the database from the "After" voice state
-            logdata = self.client.fetch_log_data(after.channel.guild)
+            logdata = self.client.fetch_log_data(voicechannel.guild)
 
         except pg8000.exceptions.Error as err:
 
@@ -326,7 +328,7 @@ class logger(commands.Cog, name="logger"):
             channel = get(before.guild.channels, id=chanId)
 
             # send the log
-            channel.send(embed=emb)
+            await channel.send(embed=emb)
             
         except discord.HTTPException as err:
             

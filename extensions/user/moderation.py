@@ -8,20 +8,11 @@ import time
 from discord.ext import commands
 from discord.utils import get
 
-from client import Client
-from setup import TOKEN
+from blutopia import Client
+from blutopia.setup import TOKEN
 
 
-# request a user from the discord API
-def request_discord_user(userid):
-    base_url = 'https://discord.com/api/v8'
-    headers = {'Authorization': 'Bot ' + f'{TOKEN}'}
-    search_url = base_url + f'/users/{userid}'
-    response = requests.get(search_url, headers=headers)
-
-    return response
-
-
+# has adminrole is a permission checker that will be on some commands
 def has_adminrole(ctx: commands.context):
     allow = False
 
@@ -45,12 +36,19 @@ class moderation(commands.Cog, name='Moderation'):
         # set our global client variables
         self.client: Client = client
 
-        # create the task for getting the emojis
-        client.loop.create_task(self._getEmojis())
+        # initialize our global emote variables
+        self.support = ''
+        self.checkemoji = ''
+        self.crossemoji = ''
+        self.dashemoji = ''
+        self.blutonium = ''
 
-    # get emojis method We use this beacause the methods we use can only be used when the client is ready and we need
-    # to use corotines
-    async def _getEmojis(self):
+        # create the task for getting the emojis
+        client.loop.create_task(self.getEmojis())
+
+    # Define our class methods
+    # We need this getemojis method to be a seperate method so we can use async since __init__ is not a coroutine
+    async def getEmojis(self):
 
         # wait unitl the client is ready
         await self.client.wait_until_ready()
@@ -74,6 +72,16 @@ class moderation(commands.Cog, name='Moderation'):
 
     # TODO expand logging cfg
 
+    # request a user from the discord API
+    @staticmethod
+    def request_discord_user(userid):
+        base_url = 'https://discord.com/api/v8'
+        headers = {'Authorization': 'Bot ' + f'{TOKEN}'}
+        search_url = base_url + f'/users/{userid}'
+        response = requests.get(search_url, headers=headers)
+
+        return response
+
     # the CFG command group are subcommands to configure and customize everything on blutonium!
     @commands.check_any(commands.has_permissions(administrator=True), commands.is_owner(),
                         commands.check(has_adminrole))
@@ -88,6 +96,8 @@ class moderation(commands.Cog, name='Moderation'):
 
             # get the guild muted role
             muterole = await self.client.fetch_mute_role(ctx.guild)
+
+            muterole = 'None' if muterole is None else muterole.mention
 
             # get the guild log data
             logdata = self.client.fetch_log_data(ctx.guild)
@@ -110,7 +120,7 @@ class moderation(commands.Cog, name='Moderation'):
                                 description=f"**Guild prefix is set to `{prefix}`**" +
                                             f"\n\n**Guild logging channel is set to" +
                                             f" {logchannel} and logging is {logsenabled}**" +
-                                            f"\n\n**Muted role is set to {muterole}**\n\n")
+                                            f"\n\n**Muted role is set to {muterole}**\n\u2003")
 
             # get the list of adminroles
             adminroles = self.client.fetch_adminroles(ctx.guild.id)
@@ -151,9 +161,55 @@ class moderation(commands.Cog, name='Moderation'):
             # send the embed
             await ctx.send(embed=emb)
 
+    # config -> muterole is to change the muted role
+    @_config.command(name='muterole', aliases=['mrole'],
+                     help='Set the role that will be given when someone is muted.')
+    async def _muterole(self, ctx, roleid):
+
+        # get the current muterole
+        muterole = await self.client.fetch_mute_role(ctx.guild)
+
+        # try and turn the roleid input into an int
+        try:
+
+            # convert to int32
+            roleid = int(roleid)
+
+        # if we get a ValueError that means that the user didnt input a proper id
+        except ValueError:
+
+            # return an error message
+            return await ctx.send(f"{self.crossemoji} **Please input a valid role ID**")
+
+        # find the role we want to set from the guild roles
+        role = get(ctx.guild.roles, id=roleid)
+
+        # if the role variable = None then that means the role wasnt found
+        if role is None:
+
+            # send our error message
+            return await ctx.send(f"{self.crossemoji} **Role was not found!**")
+
+        # if our new muterole is the same as our old muterole
+        if role == muterole:
+
+            # send that we dont need to do this
+            return await ctx.send(f"{self.crossemoji} **That role is already set to the muterole**")
+
+        # set the new muterole
+        self.client.set_muterole(ctx.guild.id, role.id)
+
+        # create an embed
+        emb = discord.Embed(title='Muterole Updated!',
+                            description=f'{muterole.mention} **->** {role.mention}',
+                            color=0x2F3136)
+
+        # send the embed
+        await ctx.send(embed=emb)
+
     # cfg -> autoban is to turn on autobanning after a certain ammount of warns
     @_config.command(name='autoban', aliases=['warnpunish'],
-                     help='If this setting is turned on that means members will be banned after a certain ammount of ' +
+                     help='If this setting is turned on that means members will be banned after a certain ammount of '
                           'warns in the server.')
     async def _autoban(self, ctx):
 
@@ -420,7 +476,7 @@ class moderation(commands.Cog, name='Moderation'):
 
         if logdata[2] == 0:
             return await ctx.send(f"{self.crossemoji} **Please set a logging channel before" +
-                                 f" enabling logs with `{prefix}cfg logchannel`**")
+                                  f" enabling logs with `{prefix}cfg logchannel`**")
 
         # get the current state of logs
         logs = self.client.guild_cache[ctx.guild.id]['logsenabled']
@@ -463,10 +519,11 @@ class moderation(commands.Cog, name='Moderation'):
                 # get the member
                 member = self.client.fetch_simple_member(ctx, inp)
 
-                if ctx.author.roles[-1].position < member.roles[-1].position:
+                if ctx.author.roles[-1].position <= member.roles[-1].position:
                     emb = discord.Embed(title=f"{self.crossemoji} Member could not be banned!", colour=0xFCFCFC)
                     emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
                     return await ctx.send(emb=emb)
+
                 # ban the user
                 await member.ban(reason=f'[{ctx.author}] {reason}')
 
@@ -498,7 +555,7 @@ class moderation(commands.Cog, name='Moderation'):
                 # get the member
                 member: discord.Member = self.client.fetch_simple_member(ctx, inp)
 
-                if ctx.author.roles[-1].position < member.roles[-1].position:
+                if ctx.author.roles[-1].position <= member.roles[-1].position:
                     emb = discord.Embed(title=f"{self.crossemoji} Member could not be banned!", colour=0xFCFCFC)
                     emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
 
@@ -695,7 +752,7 @@ class moderation(commands.Cog, name='Moderation'):
                 # get the member
                 member: discord.Member = self.client.fetch_member(ctx, inp)
 
-                if ctx.author.roles[-1].position < member.roles[-1].position:
+                if ctx.author.roles[-1].position <= member.roles[-1].position:
                     emb = discord.Embed(title=f"{self.crossemoji} Member could not be kicked!", colour=0xFCFCFC)
                     emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
                     return await ctx.send(emb=emb)
@@ -731,7 +788,7 @@ class moderation(commands.Cog, name='Moderation'):
                 # get the member
                 member: discord.Member = self.client.fetch_member(ctx, inp)
 
-                if ctx.author.roles[-1].position < member.roles[-1].position:
+                if ctx.author.roles[-1].position <= member.roles[-1].position:
                     emb = discord.Embed(title=f"{self.crossemoji} Member could not be kicked!", colour=0xFCFCFC)
                     emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
 
@@ -832,7 +889,7 @@ class moderation(commands.Cog, name='Moderation'):
         warns = self.client.fetch_warns(ctx.guild.id, user.id)
 
         # if the invokers top role is below the users top role
-        if ctx.author.roles[-1].position < user.roles[-1].position:
+        if ctx.author.roles[-1].position <= user.roles[-1].position:
             # the invoker isnt allowed to warn someone above them
             emb = discord.Embed(title=f"{self.crossemoji} Member could not be warned!", colour=0xFCFCFC)
             emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
@@ -864,7 +921,8 @@ class moderation(commands.Cog, name='Moderation'):
 
     # warns command to list a users warn
     @commands.check_any(commands.has_permissions(ban_members=True), commands.is_owner())
-    @commands.command(name='warns', aliases=['warn-list'], help='List a user\'s warns.', usage='`[Userid or Mention]`')
+    @commands.command(name='warns', aliases=['warn-list'],
+                      help='List a user\'s warns.', usage='`[Userid or Mention]`')
     async def _warns(self, ctx, user):
 
         # make fake  user class for convenicnce later
@@ -908,7 +966,8 @@ class moderation(commands.Cog, name='Moderation'):
 
     # warns-given commands is to list all the warns taht the moderator has given
     @commands.check_any(commands.has_permissions(ban_members=True), commands.is_owner())
-    @commands.command(name='warns-given', aliases=['gwarns'], help="List all the warns that you have issued")
+    @commands.command(name='warns-given', aliases=['gwarns'],
+                      help="List all the warns that you have issued")
     async def _warns_given(self, ctx):
 
         # make fake  user class for convenicnce later
@@ -983,7 +1042,7 @@ class moderation(commands.Cog, name='Moderation'):
         user = self.client.fetch_simple_member(ctx, user)
 
         # if the invokes top role is under the users top role
-        if ctx.author.roles[-1].position < user.roles[-1].position:
+        if ctx.author.roles[-1].position <= user.roles[-1].position:
             # the invoker does not have permission to mute the user
             emb = discord.Embed(title=f"{self.crossemoji} Member could not be muted!", colour=0xFCFCFC)
             emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
@@ -1119,7 +1178,7 @@ class moderation(commands.Cog, name='Moderation'):
         user = self.client.fetch_simple_member(ctx, user)
 
         # if the invokes top role is under the users top role
-        if ctx.author.roles[-1].position < user.roles[-1].position:
+        if ctx.author.roles[-1].position <= user.roles[-1].position:
             # the invoker does not have permission to mute the user
             emb = discord.Embed(title=f"{self.crossemoji} Member could not be unmuted!", colour=0xFCFCFC)
             emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
@@ -1251,7 +1310,7 @@ class moderation(commands.Cog, name='Moderation'):
             return await ctx.channel.send(embed=emb)
 
             # request the user from the discord api
-        req = request_discord_user(userid).text
+        req = self.request_discord_user(userid).text
 
         # convert the web request results to a json the request returned would look like this {'id':
         # '206250435848306692', 'username': 'Bicnu', 'avatar': '398c34f643240e91d2e2f34233d29745', 'discriminator':
@@ -1335,7 +1394,7 @@ class moderation(commands.Cog, name='Moderation'):
             return await ctx.channel.send(embed=emb)
 
             # request the user from the discord api
-        req = request_discord_user(userid).text
+        req = self.request_discord_user(userid).text
 
         # convert the web request results to a json the request returned would look like this {'id':
         # '206250435848306692', 'username': 'Bicnu', 'avatar': '398c34f643240e91d2e2f34233d29745', 'discriminator':

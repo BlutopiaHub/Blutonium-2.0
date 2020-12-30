@@ -2,9 +2,8 @@
 from collections import defaultdict
 import discord, os, datetime
 from discord.ext import commands
-from setup import OWNERID
-from discord.utils import get
-from client import Client
+from blutopia import Client
+
 
 # define cog class
 class sys(commands.Cog, name='System'):
@@ -19,7 +18,8 @@ class sys(commands.Cog, name='System'):
         # define the global client variable
         self.client : Client = client
 
-        # define a global result dict for the restart command this is that so we can get back the latest results after the client reloaded
+        # define a global result dict for the restart command this is that so we can get back
+        # the latest results after the client reloaded
         self.latest_result_dict = {}
 
     # reloadall command to reload all extensions

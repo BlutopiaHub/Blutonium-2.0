@@ -1,9 +1,9 @@
 # import the required packages
 import os
-import setup
 import sys
 
-from client import Client
+
+from blutopia import Client, setup
 
 # print some useful info
 print(f"\nBlutonium Client v{setup.clientVer}")

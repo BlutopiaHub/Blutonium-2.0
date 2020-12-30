@@ -2,13 +2,18 @@
 from io import BytesIO
 
 import datetime
+import base64
 import discord
 import humanize as h
 import requests
 import time
-from discord.ext import commands
+import operator
 
-from client import Client
+from discord.ext import commands
+from discord.utils import get
+from discord import Spotify
+
+from blutopia import Client, setup as s
 
 
 # define the subclassed Help command
@@ -151,11 +156,811 @@ class utility(commands.Cog):
         # set the cog of the help command to this one
         client.help_command.cog = self
 
-    # this method is called when the Cog is unloaded
+        # initialize our global emote variables
+        self.support = ''
+        self.checkemoji = ''
+        self.crossemoji = ''
+        self.dashemoji = ''
+        self.blutonium = ''
+
+        # create the task for getting the emojis
+        client.loop.create_task(self.getEmojis())
+
+    # Define our class methods that will be used only by our class
+    # We need this getemojis method to be a seperate method so we can use async since __init__ is not a coroutine
+    async def getEmojis(self):
+
+        # wait unitl the client is ready
+        await self.client.wait_until_ready()
+
+        # support server to get the emojis
+        self.support = get(self.client.guilds, name="Blutonium updates and support", id=629436501964619776,
+                           owner_id=393165866285662208)
+
+        # Check emoji
+        self.checkemoji = get(self.support.emojis, name="BlutoCheck")
+
+        # X emoji
+        self.crossemoji = get(self.support.emojis, name="BlutoX")
+
+        # logo emoji
+        self.blutonium = get(self.support.emojis, name="Blutonium")
+
+        # dash emoji
+        self.dashemoji = get(self.support.emojis, name='purple_dash')
+
+    # Define our static methods that we will be using within our commands, but can also be used outside of the class.
+    # chop_microseconds will be used to remove microseconds from a datetime object
+    @staticmethod
+    def chop_microseconds(delta):
+        return delta - datetime.timedelta(microseconds=delta.microseconds)
+
+    # request_song_info is to get the link for genius lyrics of a song
+    @staticmethod
+    def request_song_info(song, artist):
+
+        # define the base url of the request
+        base_url = 'https://api.genius.com'
+
+        # define the headers of the web request
+        headers = {'Authorization': 'Bearer ' + s.geniuskey}
+
+        # define our search url
+        search_url = base_url + '/search'
+
+        # setup the query for the search
+        data = {'q': song + ' ' + artist}
+
+        # request the data from the genius api
+        response = requests.get(search_url, data=data, headers=headers)
+
+        # return the response from the server
+        return response
+
+    # make a method called checkfornitro. This checks if the user's avatar is animated and also checks if the
+    # user has a nitro booster role
+    @staticmethod
+    def checkfornitro(target):
+
+        # we will start assuming the user has no nitro
+        isnitro = False
+
+        # if the user has an animated avatar
+        if target.is_avatar_animated():
+            # set nitro to True
+            isnitro = True
+
+        # if the user has a nitro boost role
+        if "nitro booster" in [role.name.lower() for role in target.roles]:
+            # set nitro to True
+            isnitro = True
+
+        return isnitro
+
+    # this method is made to check the guild join position of the user
+    @staticmethod
+    def find_joinpos(target, guild):
+
+        # We will try catch this in case we get an unexpected error,
+        # we still want to be able to display the user info
+        try:
+
+            # get all the joins in the guild
+            joins = tuple(sorted(guild.members, key=operator.attrgetter('joined_at')))
+
+            # if theres any NoneTypes in the joins tuple were not going to deal with this
+            if None in joins:
+                # return a Nonetype
+                return None
+
+            # for every user in the joins tuple
+            for joinkey, elem in enumerate(joins):
+
+                # if the user is == to the target
+                if elem == target:
+                    # return the joinkey and the total ammount of joins
+                    return joinkey + 1, len(joins)
+
+            # if none these if statements are ran, we get here and we just return a Nonetype
+            return None
+
+        # in the event of an error
+        except Exception as err:
+
+            # print the error
+            print(err)
+
+            # return a NoneType
+            return None
+
+    # Override the method that is called when the Cog is unloaded
     def cog_unload(self):
 
         # set the client help command back to the original one
         self.client.help_command = self.defaultHelpCommand
+
+    # Define all of our commands
+    # group of commands to fetch data about minecraft
+    @commands.group(name='minecraft', aliases=['mc'],
+                    head='Fetch minecraft data from lots of sources.')
+    async def _minecraft(self, ctx):
+
+        # if theres no invoked subcommand
+        if ctx.invoked_subcommand is None:
+            # get the guild prefix
+            prefix = self.client.fetch_prefix(ctx.guild.id)
+
+            # send the error message
+            await ctx.send(f"{self.crossemoji}**Please Choose a valid subcommand! Use"
+                           f"``{prefix}help minecraft`` so see a list of subcommands**")
+
+    # Minecraft 2d head command
+    @_minecraft.command(name='avatar', aliases=['av', '2dhead'],
+                        help='Get a 2d view of a user\'s minecraft head')
+    async def _minecraft_avatar(self, ctx, query, *args):
+
+        # define or base url for our api request
+        url = f'https://mc-heads.net/avatar/{query}'
+
+        # add our args to the request url if any are present
+
+        # if the --size arg is present
+        if '--size' in args:
+
+            # get the index of our size args so we can get the actual size that the user inputted
+            argindex = args.index('--size')
+
+            # add one to the arg index to get the size index
+            sizeindex = argindex + 1
+
+            # get the size that the user specifiend
+            size = args[sizeindex]
+
+            # try and convert the size to an int, if the size cant be converted to an int
+            # that means the user didnt input a valid number
+            try:
+
+                # convert size to int
+                size = int(size)
+
+            # if we get a ValueError
+            except ValueError:
+
+                # send an error message
+                return await ctx.send(f'{self.crossemoji}**Please input a valid number for the ``--size`` arg**')
+
+            url += f'/{size}'
+
+        # if the nohelm arg is present
+        if '--nohelm' in args:
+            # add /nohelm to the url
+            url += '/nohelm'
+
+        # request the file
+        request = BytesIO(requests.get(url).content)
+
+        # change the filename
+        request.name = f'{query}.png'
+
+        # Create the file
+        file = discord.File(request)
+
+        # send the file
+        await ctx.send(file=file)
+
+    # Minecraft 2d body command
+    @_minecraft.command(name='player', aliases=['pl', '2dbody'],
+                        help='Get a 2d view of a user\'s minecraft body')
+    async def _minecraft_player(self, ctx, query, *args):
+
+        # define or base url for our api request
+        url = f'https://mc-heads.net/player/{query}'
+
+        # add our args to the request url if any are present
+
+        # if the --size arg is present
+        if '--size' in args:
+
+            # get the index of our size args so we can get the actual size that the user inputted
+            argindex = args.index('--size')
+
+            # add one to the arg index to get the size index
+            sizeindex = argindex + 1
+
+            # get the size that the user specifiend
+            size = args[sizeindex]
+
+            # try and convert the size to an int, if the size cant be converted to an int
+            # that means the user didnt input a valid number
+            try:
+
+                # convert size to int
+                size = int(size)
+
+            # if we get a ValueError
+            except ValueError:
+
+                # send an error message
+                return await ctx.send(f'{self.crossemoji}**Please input a valid number for the ``--size`` arg**')
+
+            url += f'/{size}'
+
+        # if the nohelm arg is present
+        if '--nohelm' in args:
+            # add /nohelm to the url
+            url += '/nohelm'
+
+        # request the file
+        request = BytesIO(requests.get(url).content)
+
+        # change the filename
+        request.name = f'{query}.png'
+
+        # Create the file
+        file = discord.File(request)
+
+        # send the file
+        await ctx.send(file=file)
+
+    # Minecraft 3d head command
+    @_minecraft.command(name='head', aliases=['3dhead'],
+                        help='Get a 3d view of a user\'s minecraft head')
+    async def _minecraft_head(self, ctx, query, *args):
+
+        # define or base url for our api request
+        url = f'https://mc-heads.net/head/{query}'
+
+        # add our args to the request url if any are present
+
+        # if the --size arg is present
+        if '--size' in args:
+
+            # get the index of our size args so we can get the actual size that the user inputted
+            argindex = args.index('--size')
+
+            # add one to the arg index to get the size index
+            sizeindex = argindex + 1
+
+            # get the size that the user specifiend
+            size = args[sizeindex]
+
+            # try and convert the size to an int, if the size cant be converted to an int
+            # that means the user didnt input a valid number
+            try:
+
+                # convert size to int
+                size = int(size)
+
+            # if we get a ValueError
+            except ValueError:
+
+                # send an error message
+                return await ctx.send(f'{self.crossemoji}**Please input a valid number for the ``--size`` arg**')
+
+            url += f'/{size}'
+
+        # if the --nohelm arg is present
+        if '--nohelm' in args:
+            # add /nohelm to the url
+            url += '/nohelm'
+
+        # since we want --left and --right to be mutually exclusive,
+        # we put them both in a while loop that breaks once one is added
+        while True:
+
+            # if the --left arg is present
+            if '--left' in args:
+
+                # add /left to the url
+                url += '/left'
+                break
+
+            # if the --right arg is present
+            elif '--right' in args:
+
+                # add /right to the url
+                url += '/right'
+                break
+
+            else:
+
+                break
+
+        # request the file
+        request = BytesIO(requests.get(url).content)
+
+        # change the filename
+        request.name = f'{query}.png'
+
+        # Create the file
+        file = discord.File(request)
+
+        print(url)
+
+        # send the file
+        await ctx.send(file=file)
+
+    # Minecraft 3d body command
+    @_minecraft.command(name='body', aliases=['3dbody', 'bod'],
+                        help='Get a 3d view of a user\'s minecraft body')
+    async def _minecraft_body(self, ctx, query, *args):
+
+        # define or base url for our api request
+        url = f'https://mc-heads.net/body/{query}'
+
+        # add our args to the request url if any are present
+
+        # if the --size arg is present
+        if '--size' in args:
+
+            # get the index of our size args so we can get the actual size that the user inputted
+            argindex = args.index('--size')
+
+            # add one to the arg index to get the size index
+            sizeindex = argindex + 1
+
+            # get the size that the user specifiend
+            size = args[sizeindex]
+
+            # try and convert the size to an int, if the size cant be converted to an int
+            # that means the user didnt input a valid number
+            try:
+
+                # convert size to int
+                size = int(size)
+
+            # if we get a ValueError
+            except ValueError:
+
+                # send an error message
+                return await ctx.send(f'{self.crossemoji}**Please input a valid number for the ``--size`` arg**')
+
+            url += f'/{size}'
+
+        # if the --nohelm arg is present
+        if '--nohelm' in args:
+            # add /nohelm to the url
+            url += '/nohelm'
+
+        # since we want --left and --right to be mutually exclusive,
+        # we put them both in a while loop that breaks once one is added
+        while True:
+
+            # if the --left arg is present
+            if '--left' in args:
+
+                # add /left to the url
+                url += '/left'
+                break
+
+            # if the --right arg is present
+            elif '--right' in args:
+
+                # add /right to the url
+                url += '/right'
+                break
+
+            else:
+
+                break
+
+        # request the file
+        request = BytesIO(requests.get(url).content)
+
+        # change the filename
+        request.name = f'{query}.png'
+
+        # Create the file
+        file = discord.File(request)
+
+        # send the file
+        await ctx.send(file=file)
+
+    # Minecraft Hypixel command
+    @_minecraft.command(name='hypixel', aliases=['hp'],
+                        help='Get a minecraft user\'s hypixel data')
+    async def _minecraft_hypixel(self, ctx, query):
+
+        # create our url for our head display
+        avatarurl = f'https://mc-heads.net/combo/{query}'
+
+        # create our request url for the hypixel API
+        requrl = f'https://api.hypixel.net/player?key={s.hypixelkey}&name={query}'
+
+        # request the json data
+        json = requests.get(requrl).json()
+
+        # if the player key is None that means we could not find the user in the API
+        if json['player'] is None:
+            # send our error message
+            return await ctx.send(f"{self.crossemoji}**I could not find that user in the hypixel API**")
+
+        if "rank" in json["player"] and json["player"]["rank"] != "NORMAL":
+            rank = json["player"]["rank"]
+        elif "newPackageRank" in json["player"]:
+            rank = json["player"]["newPackageRank"]
+        elif "packageRank" in json["player"]:
+            rank = json["player"]["packageRank"]
+        else:
+            rank = "Rankless"
+
+        # try and get the last login
+        try:
+
+            # get the last time that the user logged in in unix timestamp
+            login = json['player']['lastLogin']
+            # convert api timestamp to a datetime object
+            login = datetime.datetime.fromtimestamp(int(str(login)[:-3]))
+            # get the last time that the user logged in in unix timestamp
+            flogin = json['player']['firstLogin']
+            # convert api timestamp to a datetime object
+            flogin = datetime.datetime.fromtimestamp(int(str(flogin)[:-3]))
+            # get the last time that the user logged in in unix timestamp
+            llogout = json['player']['lastLogout']
+            # convert api timestamp to a datetime object
+            llogout = datetime.datetime.fromtimestamp(int(str(llogout)[:-3]))
+
+        # if we get an error he login was not found
+        except KeyError:
+            login = 'Not found'
+            # get the last time that the user logged in in unix timestamp
+            flogin = json['player']['firstLogin']
+            # convert api timestamp to a datetime object
+            flogin = datetime.datetime.fromtimestamp(int(str(flogin)[:-3]))
+            llogout = 'Not found'
+
+        try:
+            swWins = json['player']['stats']['SkyWars']['wins']
+        except KeyError:
+            swWins = 0
+
+        try:
+            hgWins = json['player']['stats']['HungerGames']['wins']
+        except KeyError:
+            hgWins = 0
+
+        try:
+            mmWins = json['player']['stats']['MurderMystery']['wins']
+        except KeyError:
+            mmWins = 0
+
+        try:
+            bwWins = json['player']['stats']['Bedwars']['wins_bedwars']
+        except KeyError:
+            bwWins = 0
+
+        try:
+            duelWins = json['player']['stats']['Duels']['wins']
+        except KeyError:
+            duelWins = 0
+
+        try:
+            pitKills = json['player']['stats']['Pit']['pit_stats_ptl']['kills']
+        except KeyError:
+            pitKills = 0
+
+        try:
+            sbprofiles = len(json['player']['stats']['SkyBlock']['profiles'])
+        except KeyError:
+            sbprofiles = 0
+
+        try:
+            achievements = len(json['player']['achievementsOneTime'])
+        except KeyError:
+            achievements = 0
+
+        try:
+            aliases = json['player']['knownAliasesLower']
+        except KeyError:
+            aliases = [query]
+
+        # create our embed for the hypixel player
+        embed = discord.Embed(title=f'Hypixel Profile for {query}',
+                              description='``' + '`` ``'.join(aliases) + '``')
+
+        # add field for login info
+        embed.add_field(name='General info',
+                        value=f'{self.dashemoji}**First login** '
+                              f'``{h.naturaltime(flogin) if flogin != "Not found" else flogin}``\n'
+                              f'{self.dashemoji}**Last login:** '
+                              f'``{h.naturaltime(login) if login != "Not found" else login}``\n'
+                              f'{self.dashemoji}**Last logout** '
+                              f'``{h.naturaltime(llogout) if llogout != "Not found" else llogout}``\n'
+                              f'{self.dashemoji}**Rank:** ``{rank}``\n'
+                              f'{self.dashemoji}**Achievements:** ``{achievements}``')
+
+        # add a field for game stats
+        embed.add_field(name='Game stats',
+                        value=f'{self.dashemoji}**Skywars Wins:** ``{swWins}``\n'
+                              f'{self.dashemoji}**Bedwars Wins:** ``{bwWins}``\n'
+                              f'{self.dashemoji}**Murder Mystery Wins:** ``{mmWins}``\n'
+                              f'{self.dashemoji}**Hunger Games Wins:** ``{hgWins}``\n'
+                              f'{self.dashemoji}**Duel Wins:** ``{duelWins}``\n'
+                              f'{self.dashemoji}**Pit Kills:** ``{pitKills}``\n'
+                              f'{self.dashemoji}**Skyblock Profiles:** ``{sbprofiles}``')
+
+        # add the user avatar to the embed as the thumbnail
+        embed.set_thumbnail(url=avatarurl)
+
+        # send the embed
+        await ctx.send(embed=embed)
+
+    # Minecraft Server command
+    @_minecraft.command(name='server', aliases=['srv'],
+                        help='Get data on any minecraft server.')
+    async def _minecraft_server(self, ctx, ip):
+
+        # create our request URL
+        requrl = f'https://api.mcsrvstat.us/2/{ip}'
+
+        # request the json data from the API
+        json = requests.get(requrl).json()
+
+        # put all the data we need in variables
+        # get the server status
+        online = json['online']
+
+        # if the server is online
+        if not online:
+            # send an error message
+            return await ctx.send(f"{self.crossemoji}**Server was not found or is not online!**")
+
+        # get server players
+        players = f'{json["players"]["online"]}/{json["players"]["max"]}'
+
+        # get server motd
+        motd = '\n'.join(json['motd']["clean"])
+
+        # get server version
+        version = json["version"]
+
+        # save sever icon to my webserver
+        open(f'/media/home/FS2/WEB/blutopia.ca/img/blutonium/{ip}.png', 'wb') \
+            .write(base64.decodebytes(bytearray(json['icon'].split(',')[1], encoding='utf-8')))
+
+        # get the url of the server icon
+        servericonurl = f'https://proxy.blutopia.ca/img/blutonium/{ip}.png'
+
+        # get server ip
+        ipadress = json['ip']
+
+        # try and get the software, some servers wont have this
+        try:
+
+            # get server software
+            software = json['software']
+
+        # if we get an error
+        except KeyError:
+
+            # set software to not found
+            software = 'Not found'
+
+        # create our embed for the server
+        embed = discord.Embed(title=ip,
+                              description=f"**{motd}**",
+                              color=0x2F3136)
+
+        # add a field with all the info about our server
+        embed.add_field(name="Info", value=f'{self.dashemoji}**Ip:** {ipadress}\n'
+                                           f'{self.dashemoji}**Software:** {software}\n'
+                                           f'{self.dashemoji}**Version:** {version}\n'
+                                           f'{self.dashemoji}**Players:** {players}')
+
+        # set the server icon to the embed thumbnail
+        embed.set_thumbnail(url=servericonurl)
+
+        # send the embed
+        await ctx.send(embed=embed)
+
+    # serverinfo command is to get and display info about the server
+    @commands.command(name='serverinfo', aliases=['guildinfo', 'si', 'sinfo', 'guild'],
+                      help='Fetch and display information about the server.')
+    async def _serverinfo(self, ctx):
+
+        # get the current guild
+        guild: discord.Guild = ctx.guild
+
+        # create our embed
+        embed = discord.Embed(title=f'{guild}',
+                              color=0xFCFCFC,
+                              timestamp=datetime.datetime.utcnow())
+
+        # get the ammount of bots in the server
+        botcount = len([user for user in guild.members if user.bot])
+        # get the ammount of humans
+        humancount = len([user for user in guild.members if not user.bot])
+        # get the total members of the server
+        usercount = len(guild.members)
+        # get the ammount of text channels
+        txtChs = len(guild.text_channels)
+        # get the ammount of categories
+        catCount = len(guild.categories)
+        # get the ammount of roles
+        roles = len(guild.roles)
+        # get the ammount of voice channels
+        voicechs = len(guild.voice_channels)
+
+        # get  the guild icon url
+        iconurl = guild.icon_url
+
+        # get the guild prefix
+        prefix = self.client.fetch_prefix(guild.id)
+
+        # get the guild discovery splasj
+        disSplash = (self.checkemoji, guild.discovery_splash_url) \
+            if guild.discovery_splash is not None else (self.crossemoji, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+
+        # get the guild banner
+        guildbanner = (self.checkemoji, guild.banner_url) \
+            if guild.banner is not None else (self.crossemoji, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+
+        # get the guild splash
+        guildsplash = (self.checkemoji, guild.splash_url) \
+            if guild.splash is not None else (self.crossemoji, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+
+        # get when the guild was created
+        created = guild.created_at
+
+        # Get the guild ID
+        guildid = guild.id
+
+        # Get the guild region
+        region = guild.region
+
+        # get the guildowner
+        owner = guild.owner
+
+        # Add our fields to the embed
+        # add the info field
+        embed.add_field(name='Guild info', value=f"{self.dashemoji}**ID:** `{guildid}`\n"
+                                                 f"{self.dashemoji}**Region:** `{region}`\n"
+                                                 f"{self.dashemoji}**Created:** `{h.naturaltime(created)}`\n"
+                                                 f"{self.dashemoji}**Owner:** {owner.mention}\n"
+                                                 f"{self.dashemoji}**"
+                                                 f"[Discovery splash]({disSplash[1]}):** {disSplash[0]}\n"
+                                                 f"{self.dashemoji}**"
+                                                 f"[Invite splash]({guildsplash[1]}):** {guildsplash[0]}\n"
+                                                 f"{self.dashemoji}**"
+                                                 f"[Guild banner]({guildbanner[1]}):** {guildbanner[0]}\n")
+
+        # add the stats field
+        embed.add_field(name='Guild stats', value=f"{self.dashemoji}**Humans:** `{humancount}`\n"
+                                                  f"{self.dashemoji}**Bots:** `{botcount}`\n"
+                                                  f"{self.dashemoji}**Total:** `{usercount}`\n"
+                                                  f"{self.dashemoji}**Text Channels:** `{txtChs}`\n"
+                                                  f"{self.dashemoji}**Voice Channels:** `{voicechs}`\n"
+                                                  f"{self.dashemoji}**Categories:** `{catCount}`\n"
+                                                  f"{self.dashemoji}**Roles:** `{roles}`")
+
+        # add the guild icon url to the embed
+        embed.set_thumbnail(url=iconurl)
+
+        # send the embed
+        await ctx.send(embed=embed)
+
+    # Spotify command is to display a user's spotify status
+    @commands.command(name='spotify', aliases=['listening'],
+                      help='Show a user\'s spotify status', usage='`[userid, name, or mention]`')
+    async def _spotify(self, ctx, *, inp=None):
+
+        # fetch the user using the input given
+        user = self.client.fetch_member(ctx, inp)
+
+        # for every activity in the user's current activities
+        for activity in user.activities:
+
+            # if the activity is an instance of Spotify
+            if isinstance(activity, Spotify):
+                # get the duration of the song
+                dur = self.chop_microseconds(activity.duration)
+
+                # get the artist of the song
+                artist = activity.artist.split(';')[0]
+
+                # get the song title
+                song = activity.title.split("(")[0]
+
+                # get the albun that the song is on
+                album = activity.album
+
+                # request data about this song on the Genius API
+                request = self.request_song_info(song, artist)
+
+                # try and create a link out of our request
+                try:
+
+                    # create the link
+                    geniuslink = f'[Lyrics](https://genius.com' \
+                                 f'{request.json()["response"]["hits"][0]["result"]["path"]})'
+
+                # if we get an exception that means the request failed
+                except Exception:
+
+                    # set the link to just an error message
+                    geniuslink = "Failed to find lyrics!"
+
+                # create our embed for the spotify status
+                embed = discord.Embed(title=song,
+                                      description=f'By **{artist}** on **{album}**',
+                                      color=activity.color,
+                                      timestamp=activity.created_at)
+
+                # add a field for the duration of the song and the genius lyrics link
+                embed.add_field(name="Duration",
+                                value=f'{dur}')
+                embed.add_field(name="Genius",
+                                value=geniuslink)
+
+                # set the footer and thumbnail on the embed
+                embed.set_footer(text='Started Listening')
+                embed.set_thumbnail(url=activity.album_cover_url)
+
+                # send the embed
+                await ctx.send(embed=embed)
+
+    # Avatar command is to show a user's profile picture
+    @commands.command(name='avatar', aliases=['av'],
+                      help='Fetch a user\'s avatar', usage='`[userid, name, or mention]`')
+    async def _avatar(self, ctx, *, inp=None):
+
+        # fetch the user using input
+        member = self.client.fetch_member(ctx, inp)
+
+        # get the avatar url
+        url = member.avatar_url
+
+        # request the file
+        request = BytesIO(requests.get(url).content)
+
+        # change the filename
+        # if the avatar is animated
+        if member.is_avatar_animated():
+
+            # change the file ext to gif
+            request.name = 'avatar.gif'
+
+        # if the avatar is normal
+        else:
+
+            # change the file ext to png
+            request.name = 'avatar.png'
+
+        # create the file
+        file = discord.File(request)
+
+        # send the file
+        await ctx.send(file=file)
+
+    # Enlarge command is to show a emoji in a larger fashion
+    @commands.command(name='enlarge', aliases=['en', 'big'],
+                      help='Enlarge any discord custom emoji')
+    async def _enlarge(self, ctx, emoji: discord.PartialEmoji):
+
+        # get the url of the emoji
+        url = emoji.url
+
+        # request the file
+        request = BytesIO(requests.get(url).content)
+
+        # change the filename
+        # if the emoji is animated
+        if emoji.animated:
+
+            # change the file extension to gif
+            request.name = 'emoji.gif'
+
+        # if its not animated
+        else:
+
+            # change the file extension to png
+            request.name = 'emoji.png'
+
+        # create the file
+        file = discord.File(request)
+
+        # send the file
+        await ctx.send(file=file)
 
     # on_message_delete event listener for our snipe command
     @commands.Cog.listener()
@@ -240,11 +1045,11 @@ class utility(commands.Cog):
                       inline=True)
 
         emb.add_field(name='Total Guilds',
-                      value=serverCount,
+                      value=f'{serverCount}',
                       inline=True)
 
         emb.add_field(name='Total Users',
-                      value=userCount,
+                      value=f'{userCount}',
                       inline=True)
 
         # add the current prefix to the embed
@@ -348,6 +1153,15 @@ class utility(commands.Cog):
     @commands.command(name='userinfo', aliases=['ui', 'uinfo', 'profile', 'whois', ''])
     async def _userinfo(self, ctx, *, user=None):
 
+        # get some emojis from our support server for badges
+        balance = get(self.client.emojis, id=780281913172557824)
+        briliance = get(self.client.emojis, id=780281707231969341)
+        bravery = get(self.client.emojis, id=780281840602447932)
+        dnitro = get(self.client.emojis, id=793016993200078848)
+        early = get(self.client.emojis, id=793016903441580032)
+        staff = get(self.client.emojis, id=793016932903026759)
+        botdev = get(self.client.emojis, id=793016951806754856)
+
         # try and get the user using the input given
         user: discord.Member = self.client.fetch_member(ctx, user)
 
@@ -359,7 +1173,7 @@ class utility(commands.Cog):
         for perm in user.guild_permissions:
 
             # make a list of permissions that we want to be displayed if the user has them
-            key = ['ban members', 'kick members', 'manage messages', 'manage guild', 'mention everyone',
+            key = ['ban members', 'kick members', 'manage messages', 'manage guild',
                    'administrator', 'send messages']
 
             # the guild_permissions item includes every permission in a tuple with wether the permission is allowed
@@ -377,15 +1191,136 @@ class utility(commands.Cog):
                 if name in key:
 
                     # add the name to the list that contains all the permissions we want to display
-                    perms.append(f'{name}\n')
+                    perms.append(f'{self.checkemoji}{name.capitalize()}\n')
+
                 # if the name is not in the list of permisssions we want to display
                 else:
 
                     # just continue
                     pass
 
-        # make a method called checkfornitro. This checks if the user's avatar is animated and also checks if the
-        # user has a nitro booster role
+            # if the user dosent have the permission allowed
+            else:
+
+                # get the name of the permission
+                name = perm[0]
+
+                # permission names by defauly are formatted like "Manage_Messages" we want to remove the underscore
+                # and add a space instead replace the underscore by a space
+                name = name.replace('_', ' ')
+
+                # if the name is in the list of permissions that we want to display
+                if name in key:
+
+                    # add the name to the list that contains all the permissions we want to display
+                    perms.append(f'{self.crossemoji}{name.capitalize()}\n')
+
+                # if the name is not in the list of permisssions we want to display
+                else:
+
+                    # just continue
+                    pass
+
+        # get our user's join position
+        joinpos = self.find_joinpos(user, ctx.guild)
+
+        # set which emoji we will put on our nitro check field
+        nitro = self.checkemoji if self.checkfornitro(user) else self.crossemoji
+
+        # check if the user is a bot owner
+        owner = self.checkemoji if user.id in self.client.owner_ids else self.crossemoji
+
+        # check if the user is blacklisted
+        blacklisted = self.checkemoji if user.id in self.client.blacklist_cache else self.crossemoji
+
+        # get all the mutual guilds that the user is in
+        mutualguilds = len([1 for guild in self.client.guilds if user in guild.members])
+
+        # initalize our badges string
+        badges = ''
+
+        # if any of the user bot dev flags are true
+        if user.public_flags.verified_bot_developer \
+                or user.public_flags.early_verified_bot_developer \
+                or user.public_flags.verified_bot:
+            # add the botdev icon
+            badges += f'{botdev} '
+
+        # if the staff flag is true
+        if user.public_flags.staff:
+            # add the staff icon
+            badges += f'{staff}'
+
+        # if the user has nitro
+        if self.checkfornitro(user):
+            # add the nitro badge
+            badges += f'{dnitro} '
+
+        # if the early supporter flag is present
+        if user.public_flags.early_supporter:
+            # add the early supporer badge
+            badges += f'{early} '
+
+        # if the hypesquad balance flag is true
+        if user.public_flags.hypesquad_balance:
+
+            # add the balance badge
+            badges += f'{balance} '
+
+        # if the briliance flag is true
+        elif user.public_flags.hypesquad_brilliance:
+
+            # add the brilliance badge
+            badges += f'{briliance} '
+
+        # if the bravery flag is true
+        elif user.public_flags.hypesquad_bravery:
+
+            # add the bravery badge
+            badges += f'{bravery} '
+
+        # check if the user is a bot VIP
+        vip = self.checkemoji if user.id in [393165866285662208, 316689746028003331] else self.crossemoji
+
+        # create our userinfo embed
+        embed = discord.Embed(title=f'{user}',
+                              color=user.color,
+                              timestamp=datetime.datetime.utcnow(),
+                              description=f"")
+
+        # add a field for guild specific info
+        embed.add_field(name='Guild info', value=f"{self.dashemoji}**Nickname:** {user.display_name}\n"
+                                                 f"{self.dashemoji}**Joined at:** {h.naturaltime(user.joined_at)}\n"
+                                                 f"{self.dashemoji}**Roles:** {len(user.roles)}\n"
+                                                 f"{self.dashemoji}**Join pos:** {joinpos[0]}/{joinpos[1]}")
+
+        # add a field for global info
+        embed.add_field(name='Global info', value=f"{self.dashemoji}**ID:** {user.id}\n"
+                                                  f"{self.dashemoji}**Created at:** {h.naturaltime(user.created_at)}\n"
+                                                  f"{self.dashemoji}**Nitro:** {nitro}\n"
+                                                  f"{self.dashemoji}**Badges:** {badges}")
+
+        # add an empty field for design purposes
+        embed.add_field(name='\u200b', value='\u200b')
+
+        # add a field for permissions
+        embed.add_field(name="Key permissions",
+                        value='**' + ''.join(perms) + '**')
+
+        # add a field for bot stats
+        embed.add_field(name="Bot Stats", value=f"{self.dashemoji}**Bot owner: {owner}**\n"
+                                                f"{self.dashemoji}**Blacklisted:** {blacklisted}\n"
+                                                f"{self.dashemoji}**VIP: {vip}**\n"
+                                                f"{self.dashemoji}**Shared Guilds:** {mutualguilds}")
+
+        # add an empty field for design purposes
+        embed.add_field(name='\u200b', value='\u200b')
+
+        # set the thumbnail of the emebd to the user's avatar
+        embed.set_thumbnail(url=user.avatar_url)
+
+        # send the embed
+        await ctx.send(embed=embed)
 
     # invite command is to get the invite link for the bot and support server
     @commands.command(name='invite', aliases=['inv', 'support'],

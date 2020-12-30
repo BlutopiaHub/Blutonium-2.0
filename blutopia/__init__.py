@@ -7,11 +7,13 @@ import os
 import pg8000
 import platform
 import random
-import setup
+from blutopia import setup
 from discord.ext import commands
 from discord.ext.commands.errors import ExtensionAlreadyLoaded, ExtensionFailed, ExtensionNotFound, \
     ExtensionNotLoaded, NoEntryPointError
 from discord.utils import get
+
+__version__ = '1.0.0'
 
 
 # Define our subclassed client.
@@ -28,10 +30,10 @@ class Client(commands.Bot):
         clientIntents.members = True
         clientIntents.presences = True
 
-        # Init our subclass commands.Bot with our custom prefix method. 
+        # Init our subclass commands.Bot with our custom prefix method.
         super().__init__(self.findprefix, options=options, intents=clientIntents)
 
-        # Define all our caches. 
+        # Define all our caches.
         self.user_cache = {}
         self.guild_cache = {}
         self.blacklist_cache = []
@@ -41,9 +43,8 @@ class Client(commands.Bot):
         self.mute_cache = defaultdict(dict)
         self.hackban_cache = {}
 
-        # Connect to our Database. 
-        self.db = pg8000.connect(setup.PgName, host=setup.PgHost, database=setup.PgDb, password=setup.PgPwrd,
-                                 application_name='Blutonium Client')
+        # Connect to our Database.
+        self.db = pg8000.connect(setup.PgName, host=setup.PgHost, database=setup.PgDb, password=setup.PgPwrd)
 
         # Set our owner cache to the owner_ids variable. We need to do this so that when we use the @is_owner
         # decorator the owners are known.
@@ -59,7 +60,7 @@ class Client(commands.Bot):
 
     # Override our on_message event. This is made so that we can add blacklisting to the method and also add our
     # response to @mentions.
-    async def on_message(self, message):
+    async def on_message(self, message: discord.Message):
 
         # get the guild prefix
         try:
@@ -67,7 +68,7 @@ class Client(commands.Bot):
             prefix = self.fetch_prefix(message.guild.id)
 
         # if we get an error it means we got a DM
-        except:
+        except Exception:
 
             # print our DM
             print(message.content)
@@ -104,7 +105,7 @@ class Client(commands.Bot):
             # continue doing bot things
             return await self.process_commands(message)
 
-        # if the user is in the blacklist ... 
+        # if the user is in the blacklist ...
         else:
 
             # get the context of the message
@@ -115,8 +116,9 @@ class Client(commands.Bot):
                 # send the message saying this user was blacklisted
                 return await message.channel.send('You have been blacklisted from using this bot.')
 
-    # Override our load_extension method. This is done so that we can add evey extension that is loaded to the ext_cache along with its start time, for the uptime command.
-    def load_extension(self, name):
+    # Override our load_extension method. This is done so that we can add evey extension that is loaded to the
+    # ext_cache along with its start time, for the uptime command.
+    def load_extension(self, name: str):
 
         # try and load the extension normally
         try:
@@ -152,8 +154,9 @@ class Client(commands.Bot):
             # add the extension to the extension uptime cache
             self.ext_cache[name] = {"start_time": datetime.datetime.now()}
 
-    # Override our unload_extension method. This is done so that we can remove extensions from our ext_cache when extensions our unloaded.
-    def unload_extension(self, name):
+    # Override our unload_extension method. This is done so that we can remove extensions from our ext_cache when
+    # extensions our unloaded.
+    def unload_extension(self, name: str):
 
         # try and unload the extension normally
         try:
@@ -173,8 +176,9 @@ class Client(commands.Bot):
             # remove the extension from the cache
             self.ext_cache[name] = {}
 
-    # Create our findprefix method. This method is called as the command_prefix. So that we can have different prefixes per server.
-    def findprefix(self, client, message):
+    # Create our findprefix method. This method is called as the command_prefix. So that we can have different
+    # prefixes per server.
+    def findprefix(self, client: commands.Bot, message: discord.Message):
 
         guild = message.guild
 
@@ -185,7 +189,19 @@ class Client(commands.Bot):
 
         return prefix
 
-    # Build_guild_cache method is to add our already saved data from the database to our cache so that we dont have to query our database all the time.
+    # set_muterole method is to set the guild muterole
+    def set_muterole(self, guildid, roleid):
+
+        self.guild_cache[guildid]['muteroleid'] = roleid
+
+        sql = f"UPDATE guilddata SET muterole = {roleid} WHERE guildid = {guildid}"
+
+        self.db.run(sql)
+
+        self.db.commit()
+
+    # Build_guild_cache method is to add our already saved data from the database to our cache so that we dont have
+    # to query our database all the time.
     def build_guild_cache(self):
 
         sql = f"SELECT guildid, logs, muterole, prefix, logchannelid, warnconfig from guilddata"
@@ -207,7 +223,8 @@ class Client(commands.Bot):
 
         return self.guild_cache
 
-    # Build_user_cache method is to add our already saved data from the database to our cache so that we dont have to query our database all the time.
+    # Build_user_cache method is to add our already saved data from the database to our cache so that we dont have to
+    # query our database all the time.
     def build_user_cache(self):
 
         sql = f"SELECT userid, points, messages, cmduses, claimed, rankimage, ranktext, rankaccent from userdata"
@@ -219,7 +236,15 @@ class Client(commands.Bot):
             points = row[1]
             messages = row[2]
             cmduses = row[3]
-            claimed = row[4]
+
+            if row[4] is None:
+
+                claimed = row[4]
+
+            elif isinstance(row[4], str):
+
+                claimed = datetime.datetime.strptime(row[4], '%Y-%m-%d %H:%M:%S.%f')
+
             rankimage = row[5]
             ranktext = row[6]
             rankaccent = row[7]
@@ -229,7 +254,8 @@ class Client(commands.Bot):
 
         return self.user_cache
 
-    # Build_blacklist_cache method is to add our already saved data from the database to our cache so that we dont have to query our database all the time.
+    # Build_blacklist_cache method is to add our already saved data from the database to our cache so that we dont
+    # have to query our database all the time.
     def build_blacklist_cache(self):
 
         self.blacklist_cache = []
@@ -239,13 +265,14 @@ class Client(commands.Bot):
         rows = self.db.run(sql)
 
         for row in rows:
-            id = row[0]
+            userid = row[0]
 
-            self.blacklist_cache.append(id)
+            self.blacklist_cache.append(userid)
 
         return self.blacklist_cache
 
-    # Build_owner_cache method is to add our already saved data from the database to our cache so that we dont have to query our database all the time.
+    # Build_owner_cache method is to add our already saved data from the database to our cache so that we dont have
+    # to query our database all the time.
     def build_owner_cache(self):
 
         self.owner_cache = []
@@ -255,14 +282,15 @@ class Client(commands.Bot):
         rows = self.db.run(sql)
 
         for row in rows:
-            id = row[0]
+            uid = row[0]
 
-            self.owner_cache.append(id)
+            self.owner_cache.append(uid)
 
         self.owner_ids = self.owner_cache
         return self.owner_cache
 
-    # Build_level_cache method is to add our already saved data from the database to our cache so that we dont have to query our database all the time.
+    # Build_level_cache method is to add our already saved data from the database to our cache so that we dont have
+    # to query our database all the time.
     def build_level_cache(self):
 
         sql = f"SELECT * from levels"
@@ -282,7 +310,8 @@ class Client(commands.Bot):
 
         return self.levels_cache
 
-    # Build_mute_cache method is to add our already saved data from the database to our cache so that we dont have to query out database all the time.
+    # Build_mute_cache method is to add our already saved data from the database to our cache so that we dont have to
+    # query out database all the time.
     def build_mute_cache(self):
 
         sql = f"SELECT * FROM mutes"
@@ -314,11 +343,10 @@ class Client(commands.Bot):
 
             guildid = row[0]
             userid = row[1]
-            reason = row[2]
 
             try:
                 self.hackban_cache[guildid]['users'].append(userid)
-            except:
+            except Exception:
                 pass
 
     # Build_caches method is to build our various caches that we have in one method.
@@ -334,7 +362,7 @@ class Client(commands.Bot):
         self.build_hackban_cache()
 
     # Fetch_prefix method is to fetch a prefix for a guild from our cache.
-    def fetch_prefix(self, guildid):
+    def fetch_prefix(self, guildid: int):
 
         if guildid in self.guild_cache.keys():
 
@@ -346,7 +374,7 @@ class Client(commands.Bot):
 
             # Update prefix method is to update prefixes in our cache and database.
 
-    def update_prefix(self, guildid, prefix):
+    def update_prefix(self, guildid: int, prefix: str):
 
         sql = f"UPDATE guilddata SET prefix = '{prefix}' WHERE guildid = {guildid}"
 
@@ -356,22 +384,22 @@ class Client(commands.Bot):
         self.db.commit()
 
     # blacklist method is to update the blackist and add a user to it.
-    def blacklist(self, id):
+    def blacklist(self, userid: int):
 
-        sql = f"INSERT INTO blacklist (userid) VALUES ({id})"
+        sql = f"INSERT INTO blacklist (userid) VALUES ({userid})"
         self.db.run(sql)
 
-        self.blacklist_cache.append(id)
+        self.blacklist_cache.append(userid)
 
         self.db.commit()
 
     # unblacklist method is to update the blacklist and remove a user to it.
-    def unblacklist(self, id):
+    def unblacklist(self, userid: int):
 
-        sql = f"DELETE FROM blacklist WHERE userid = {id}"
+        sql = f"DELETE FROM blacklist WHERE userid = {userid}"
         self.db.run(sql)
 
-        self.blacklist_cache.remove(id)
+        self.blacklist_cache.remove(userid)
 
         self.db.commit()
 
@@ -380,10 +408,12 @@ class Client(commands.Bot):
 
         # for every user that the client can see
         for user in self.get_all_members():
-            sql = f"INSERT INTO userdata (userid, points, messages, cmduses, claimed, rankimage, ranktext, rankaccent) VALUES ({user.id},0,0,0,null,null,null,null) ON CONFLICT DO NOTHING"
-            self.user_cache[user.id] = {"points": 0, "messages": 0, "cmduses": 0, "claimed": None, "rankimage": None,
-                                        "ranktext": None, "rankaccent": None}
+            sql = f"INSERT INTO userdata (userid, points, messages, cmduses, claimed, rankimage, ranktext, " \
+                  f"rankaccent) VALUES ({user.id},0,0,0,null,null,null,null) ON CONFLICT DO NOTHING "
+
             self.db.run(sql)
+
+        self.build_user_cache()
 
         self.db.commit()
         return
@@ -391,7 +421,7 @@ class Client(commands.Bot):
     # All_guilds_data_build is to add every user that isnt in the database into the database.
     async def all_guilds_data_build(self):
 
-        class fakeRole():
+        class fakeRole:
 
             def __init__(self):
                 self.id = 000000000000000000000
@@ -420,23 +450,25 @@ class Client(commands.Bot):
 
                 muterole = await self.fetch_mute_role(guild)
 
-            except:
+            except Exception:
 
                 muterole = fakeRole()
 
             prefix = 'b/'
 
-            sql = f"INSERT INTO guilddata (guildid, adminroles, logs, muterole, prefix, logchannelid) VALUES ({guild.id},null,{logs},{muterole.id},'{prefix}',{logchan}) ON CONFLICT DO NOTHING"
+            sql = f"INSERT INTO guilddata (guildid, adminroles, logs, muterole, prefix, logchannelid) VALUES " \
+                  f"({guild.id},null,{logs},{muterole.id},'{prefix}',{logchan}) ON CONFLICT DO NOTHING "
 
             try:
 
-                rows = self.db.run(sql)
+                self.db.run(sql)
 
-            except:
+            except Exception:
 
-                sql = f"INSERT INTO guilddata (guildid, adminroles, logs, muterole, prefix, logchannelid) VALUES ({guild.id}, null, {logs}, {muterole.id}, 'b/', 0 ) ON CONFLICT DO NOTHING"
+                sql = f"INSERT INTO guilddata (guildid, adminroles, logs, muterole, prefix, logchannelid) VALUES " \
+                      f"({guild.id}, null, {logs}, {muterole.id}, 'b/', 0 ) ON CONFLICT DO NOTHING"
 
-                rows = self.db.run(sql)
+                self.db.run(sql)
 
             path = f"/media/home/FS2/WEB/blutopia.ca/img/blutonium/{guild.id}"
             if not os.path.exists(path):
@@ -444,13 +476,14 @@ class Client(commands.Bot):
 
             continue
 
+        self.build_guild_cache()
         self.db.commit()
         return
 
     # Fetch_mute_role is to get the mute role from any guild.
-    async def fetch_mute_role(self, guild):
+    async def fetch_mute_role(self, guild: discord.Guild):
 
-        class fakeRole():
+        class fakeRole:
 
             def __init__(self):
                 self.id = 000000000000000000000
@@ -459,7 +492,7 @@ class Client(commands.Bot):
 
             role = self.guild_cache[guild.id]['muteroleid']
 
-        except:
+        except Exception:
 
             role = None
 
@@ -476,7 +509,7 @@ class Client(commands.Bot):
 
                     role = await guild.create_role(name='muted')
 
-                except:
+                except Exception:
 
                     print(f"Unable to create muted role for {guild}")
                     muterole = fakeRole()
@@ -509,7 +542,7 @@ class Client(commands.Bot):
         try:
             muterole = get(guild.roles, id=role)
 
-        except:
+        except Exception:
 
             muterole = None
 
@@ -517,9 +550,10 @@ class Client(commands.Bot):
 
         # Create_user is to add individual users to our databse.
 
-    def create_user(self, user):
+    def create_user(self, user: discord.Member):
 
-        sql = f"INSERT INTO userdata (userid, points, messages, cmduses, claimed, rankimage, ranktext, rankaccent) VALUES ({user.id},0,0,0,null,null,null,null) ON CONFLICT DO NOTHING"
+        sql = f"INSERT INTO userdata (userid, points, messages, cmduses, claimed, rankimage, ranktext, rankaccent) " \
+              f"VALUES ({user.id},0,0,0,null,null,null,null) ON CONFLICT DO NOTHING"
         self.user_cache[user.id] = {"points": 0, "messages": 0, "cmduses": 0, "claimed": None, "rankimage": None,
                                     "ranktext": None, "rankaccent": None}
         self.db.run(sql)
@@ -529,9 +563,9 @@ class Client(commands.Bot):
 
         # Log_guild is to add individual guilds to our database.
 
-    async def log_guild(self, guild):
+    async def log_guild(self, guild: discord.Guild):
 
-        class fakeRole():
+        class fakeRole:
 
             def __init__(self):
                 self.id = 000000000000000000000
@@ -558,23 +592,25 @@ class Client(commands.Bot):
 
             muterole = await self.fetch_mute_role(guild)
 
-        except:
+        except Exception:
 
             muterole = fakeRole()
 
         prefix = 'b/'
 
-        sql = f"INSERT INTO guilddata (guildid, adminroles, logs, muterole, prefix, logchannelid) VALUES ({guild.id},null,{logs},{muterole.id},'{prefix}',{logchan}) ON CONFLICT DO NOTHING"
+        sql = f"INSERT INTO guilddata (guildid, adminroles, logs, muterole, prefix, logchannelid) VALUES " \
+              f"({guild.id},null,{logs},{muterole.id},'{prefix}',{logchan}) ON CONFLICT DO NOTHING"
 
         try:
 
-            rows = self.db.run(sql)
+            self.db.run(sql)
 
-        except:
+        except Exception:
 
-            sql = f"INSERT INTO guilddata (guildid, adminroles, logs, muterole, prefix, logchannelid) VALUES ({guild.id}, null, {logs}, {muterole.id}, 'b/', 0 ) ON CONFLICT DO NOTHING"
+            sql = f"INSERT INTO guilddata (guildid, adminroles, logs, muterole, prefix, logchannelid) VALUES " \
+                  f"({guild.id}, null, {logs}, {muterole.id}, 'b/', 0 ) ON CONFLICT DO NOTHING"
 
-            rows = self.db.run(sql)
+            self.db.run(sql)
 
         path = f"/media/home/FS2/WEB/blutopia.ca/img/blutonium/{guild.id}"
         if not os.path.exists(path):
@@ -584,7 +620,7 @@ class Client(commands.Bot):
         return
 
     # Set_owner is to add a user to the owners list.
-    def set_owner(self, userid):
+    def set_owner(self, userid: int):
 
         sql = f"INSERT INTO owners (userid) VALUES ({userid}) ON CONFLICT DO NOTHING"
 
@@ -595,7 +631,7 @@ class Client(commands.Bot):
         self.db.commit()
 
     # Remove_owner is to delete a user from the owners list.
-    def remove_owner(self, userid):
+    def remove_owner(self, userid: int):
 
         sql = f"DELETE FROM owners WHERE userid={userid}"
 
@@ -606,14 +642,15 @@ class Client(commands.Bot):
         self.db.commit()
 
     # Fetch_member is to get a member using the user command input.
-    def fetch_member(self, ctx, inp):
+    @staticmethod
+    def fetch_member(ctx: commands.Context, inp: str):
 
         member = None
 
         try:
             member = get(ctx.guild.members, id=int(inp))
 
-        except:
+        except Exception:
 
             if inp:
 
@@ -622,10 +659,19 @@ class Client(commands.Bot):
                 if member is None:
                     member = get(ctx.guild.members, display_name=inp)
 
-                if member is None:
-                    bro = inp.split('#')
+                try:
+                    if member is None:
+                        bro = inp.split('#')
 
-                    member = get(ctx.guild.members, name=bro[0], discriminator=bro[1])
+                        member = get(ctx.guild.members, name=bro[0], discriminator=bro[1])
+
+                except IndexError:
+
+                    if inp is None:
+                        member: discord.Member = ctx.author
+                    else:
+                        for men in ctx.message.mentions:
+                            member = men
 
             if inp is None:
                 member: discord.Member = ctx.author
@@ -636,7 +682,7 @@ class Client(commands.Bot):
         return member
 
     # Fetch_log_data is to fetch the logging settings from the cache.
-    def fetch_log_data(self, guild):
+    def fetch_log_data(self, guild: discord.Guild):
 
         data = (guild.id, self.guild_cache[guild.id]["logsenabled"], self.guild_cache[guild.id]["logchannelid"])
 
@@ -653,7 +699,6 @@ class Client(commands.Bot):
                 self.guild_cache[guild.id]["logsenabled"] = False
                 data = (guild.id, False, 0)
 
-
             else:
 
                 # make the channel this new found channel
@@ -663,9 +708,9 @@ class Client(commands.Bot):
 
         # Update_Log_channel is to change the channel that blutonium will log in a given guild
 
-    def update_log_channel(self, guild, channelid):
+    def update_log_channel(self, guild: discord.Guild, channelid: int):
 
-        logdata = self.fetch_log_data(guild)
+        self.fetch_log_data(guild)
 
         sql = f"UPDATE guilddata SET logchannelid = {channelid} WHERE guildid = {guild.id}"
 
@@ -677,11 +722,11 @@ class Client(commands.Bot):
         return 0
 
     # Toggle_logs is to toggle logging in a given guild
-    def set_logs(self, guildid, state):
+    def set_logs(self, guildid: int, state: bool):
 
         self.guild_cache[guildid]['logsenabled'] = state
 
-        state = 'true' if state == True else 'false'
+        state = 'true' if state else 'false'
 
         sql = f'UPDATE guilddata SET logs = {state} WHERE guildid = {guildid}'
 
@@ -689,8 +734,10 @@ class Client(commands.Bot):
 
         self.db.commit()
 
-    # Fetch_simple_member fetches a member using the user input from the command but ths one only get's @mentions and user IDs no names or nicknames
-    def fetch_simple_member(self, ctx, input):
+    # Fetch_simple_member fetches a member using the user input from the command but ths one only get's @mentions and
+    # user IDs no names or nicknames
+    @staticmethod
+    def fetch_simple_member(ctx: commands.Context, inp: str):
 
         # set the user variable to None this means the method will return None if the fetch doesnt work
         user = None
@@ -698,13 +745,13 @@ class Client(commands.Bot):
         # try and get the user using the unput
         try:
 
-            # we turn the input to an INT 
-            input = int(input)
+            # we turn the input to an INT
+            inp = int(inp)
 
-            user = get(ctx.guild.members, id=input)
+            user = get(ctx.guild.members, id=inp)
 
         # when we get a Errror that means the user didnt input a ID
-        except:
+        except ValueError:
 
             # try and get the message mentions
             if ctx.message.mentions:
@@ -716,9 +763,11 @@ class Client(commands.Bot):
 
         # Mute Is to add a mute to our cache and database
 
-    def mute(self, guildid, userid, modid, reason, time):
+    def mute(self, guildid: int, userid: int, modid: int, reason: str, time: datetime.date):
 
-        sql = f"INSERT INTO mutes (guildid, mutedid, reason, time, modid) VALUES ({guildid}, {userid}, '{reason}', '{time.strftime('%Y-%m-%d %H:%M:%S.%f')}', {modid}) ON CONFLICT DO NOTHING"
+        sql = f"INSERT INTO mutes (guildid, mutedid, reason, time, modid) VALUES " \
+              f"({guildid}, {userid}, '{reason}', '{time.strftime('%Y-%m-%d %H:%M:%S.%f')}', {modid})" \
+              f" ON CONFLICT DO NOTHING"
 
         self.db.run(sql)
         self.mute_cache[guildid][userid] = {'active': True, 'modid': modid, 'reason': reason, 'time': time}
@@ -726,7 +775,7 @@ class Client(commands.Bot):
         self.db.commit()
 
     # Fetch Mutes is to get all he mutes in a given guild
-    def fetch_mutes(self, guildid):
+    def fetch_mutes(self, guildid: int):
 
         sql = f"SELECT * FROM mutes WHERE guildid = {guildid}"
 
@@ -734,8 +783,9 @@ class Client(commands.Bot):
 
         return rows
 
-    # fetch_active_mutes is essentially the same as fetch_mutes but this method querys our cache instead of our database so that our unmute loop can run faster.
-    def fetch_active_mutes(self, guildid):
+    # fetch_active_mutes is essentially the same as fetch_mutes but this method querys our cache instead of our
+    # database so that our unmute loop can run faster.
+    def fetch_active_mutes(self, guildid: int):
 
         mutes = []
 
@@ -763,9 +813,10 @@ class Client(commands.Bot):
         self.db.commit()
 
     # Hackban is to add a user to the hackban cache and database
-    def hackban(self, guildid, userid, reason):
+    def hackban(self, guildid: int, userid: int, reason: str):
 
-        sql = f"INSERT INTO hackbans (guildid, userid, reason) VALUES ({guildid}, {userid}, '{reason}') ON CONFLICT DO NOTHING"
+        sql = f"INSERT INTO hackbans (guildid, userid, reason) VALUES ({guildid}, {userid}, '{reason}')" \
+              f" ON CONFLICT DO NOTHING"
 
         self.db.run(sql)
         self.hackban_cache[guildid]['users'].append(userid)
@@ -796,9 +847,10 @@ class Client(commands.Bot):
     # Warn command is to add a warn to a user in a specific guild
     def warn(self, guildid: int, userid: int, caseid: int, modid: int, reason: str):
 
-        sql = f"INSERT INTO warns (guildid, userid, caseid, modid, reason) VALUES ({guildid}, {userid}, {caseid}, {modid}, '{reason}') ON CONFLICT DO NOTHING"
+        sql = f"INSERT INTO warns (guildid, userid, caseid, modid, reason) VALUES " \
+              f"({guildid}, {userid}, {caseid}, {modid}, '{reason}') ON CONFLICT DO NOTHING"
 
-        res = self.db.run(sql)
+        self.db.run(sql)
 
         self.db.commit()
 
@@ -825,7 +877,7 @@ class Client(commands.Bot):
 
         sql = f"SELECT * FROM warns WHERE modid = {modid} AND guildid = {guildid}"
 
-        rows = self.db.run(sql)
+        self.db.run(sql)
 
         return
 
@@ -889,7 +941,8 @@ class Client(commands.Bot):
 
         maxwarns = self.guild_cache[guildid]['warnconfig']['maxwarns']
 
-        sql = f'UPDATE guilddata SET warnconfig = \'{{"autoban": {state}, "maxwarns": {maxwarns}}}\' WHERE guildid = {guildid}'
+        sql = f'UPDATE guilddata SET warnconfig = ' \
+              f'\'{{"autoban": {state}, "maxwarns": {maxwarns}}}\' WHERE guildid = {guildid}'
 
         self.db.run(sql)
 
@@ -903,10 +956,113 @@ class Client(commands.Bot):
 
         self.guild_cache[guildid]['warnconfig']['maxwarns'] = ammount
 
-        sql = f'UPDATE guilddata SET warnconfig = \'{{"autoban":{autoban}, "maxwarns":{ammount}}}\' WHERE guildid = {guildid}'
+        sql = f'UPDATE guilddata SET warnconfig = ' \
+              f'\'{{"autoban":{autoban}, "maxwarns":{ammount}}}\' WHERE guildid = {guildid}'
 
         self.db.run(sql)
         self.db.commit()
+
+    def fetch_points(self, userid: int):
+
+        return self.user_cache[userid]['points']
+
+    def fetch_claimed(self, userid: int):
+
+        # fetch when the last time the points were claimed
+        claimed = self.user_cache[userid]['claimed']
+
+        # if our last claimed is None that means the user has never claimed points
+        if claimed is None:
+
+            # get the datetime now
+            now = datetime.datetime.now()
+
+            # add 24 hours to now to get the next time the user can claim their points
+            nextclaim = now + datetime.timedelta(hours=24)
+
+            # turn now into a string for the database
+            strnow = now.strftime('%Y-%m-%d %H:%M:%S.%f')
+
+            # set the last claim in the cache to the now
+            self.user_cache[userid]['claimed'] = now
+
+            # set the last claim in the db to now
+            sql = f'UPDATE userdata SET claimed =  \'{strnow}\' WHERE userid = {userid}'
+            self.db.run(sql)
+            self.db.commit()
+
+            # we will return a tuple with a boolean and a datetime, the datetime will be when our next claim is avalible
+            # and the boolean will be wether we can claim the 100 points right now or if were waiting
+            return True, nextclaim
+
+        # if the last claimed is not None
+        else:
+
+            # get the datetime now
+            now = datetime.datetime.now()
+
+            # get our next claim
+            # the next claim is 24 hours from our last claim
+            nextclaim = claimed + datetime.timedelta(hours=24)
+
+            # if our next claim is more than now Which means its in the future that means we cant claim yet
+            # we will only claim once our next claim has passed
+            if now < nextclaim:
+
+                # we will return false and a datetime of when our next claim is
+                return False, nextclaim
+
+            # if our next claim has passed
+            else:
+
+                # our nextclaim will become our last claimed
+                self.user_cache[userid]['claimed'] = now
+
+                # turn nextclaim into a string for the database
+                strlast = nextclaim.strftime('%Y-%m-%d %H:%M:%S.%f')
+
+                # update the database
+                sql = f'UPDATE userdata SET claimed = \'{strlast}\' WHERE userid = {userid}'
+                self.db.run(sql)
+                self.db.commit()
+
+                # we will return True and a now datetime, in this case whatever datetime object we return doesnt matter
+                # because we arent gonna use it
+                return True, now
+
+    def set_points(self, userid: int, ammount: int):
+
+        # update the cache with our new points ammount
+        self.user_cache[userid]['points'] = ammount
+
+        # update the database with our new points ammount
+        sql = f"UPDATE userdata SET points = {ammount} WHERE userid = {userid}"
+        self.db.run(sql)
+        self.db.commit()
+
+    def fetch_guild_points_leaderboard(self, guildmembers: list):
+
+        # make an empty list called ids
+        ids = []
+
+        # for every user in the guild
+        for member in guildmembers:
+
+            # add the user's id to the ids list
+            ids.append(member.id)
+
+        # change the ids list to a string and change the square brackets to normal brackets
+        ids = str(ids).replace('[', '(') \
+            .replace(']', ')')
+
+        # create our database query
+        sql = f"SELECT userid, points FROM userdata WHERE userid IN {ids} ORDER BY points DESC LIMIT 10"
+
+        # query the database
+        rows = self.db.run(sql)
+
+        # return the query
+        return rows
 
     # override our run command to add some of our own spice
     def run(self, *args, **kwargs):

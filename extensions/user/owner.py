@@ -6,79 +6,6 @@ from discord.ext import commands
 from discord.utils import get
 
 
-# guild embed method
-def guildembed(guild):
-    # initialize the embed
-    embed = discord.Embed(title=f'{guild}', colour=discord.Colour.blue(), timestamp=datetime.datetime.now())
-
-    # initialize the bot count
-    botcount = 0
-
-    # for every user in guild members
-    for bot in guild.members:
-        # if the user is a bot
-        if bot.bot:
-            # increment botcount by 1
-            botcount += 1
-
-    # normal users is all the users - the bots        
-    membercount = len(guild.members) - botcount
-
-    # get the number of text channels
-    TextChs = len(guild.text_channels)
-
-    # Count all the voice channels
-    voiceChs = len(guild.voice_channels)
-
-    # Count all the categories
-    catcount = len(guild.categories)
-
-    # Count all the roles
-    roles = len(guild.roles)
-
-    # get the guild icon url
-    servericonurl = str(guild.icon_url)
-
-    # set the embed text channel field
-    embed.add_field(name='Text channels', value=TextChs, inline=True)
-
-    # set the embed categories field
-    embed.add_field(name='categories', value=catcount, inline=True)
-
-    # Set the embed region field
-    embed.add_field(name='Region', value=f'{guild.region}', inline=True)
-
-    # Set the embed voice channels field
-    embed.add_field(name='Voice channels', value=voiceChs, inline=True)
-
-    # Set the server id field
-    embed.add_field(name='Server ID', value=f'{guild.id}', inline=True)
-
-    # Set the server owner field
-    embed.add_field(name='Server owner', value=f'{guild.owner}', inline=True)
-
-    # Set the total members field
-    embed.add_field(name='total members', value=len(guild.members), inline=True)
-
-    # Set the total humans field
-    embed.add_field(name='humans', value=membercount, inline=True)
-
-    # Set the total bots field
-    embed.add_field(name='bots', value=botcount, inline=True)
-
-    # Set the guild created field
-    embed.add_field(name='Created', value=f'{h.naturaltime(guild.created_at)}', inline=True)
-
-    # Set the roles field
-    embed.add_field(name='roles', value=roles)
-
-    # Set the embed thumbnail
-    embed.set_thumbnail(url=servericonurl)
-
-    # return the whole embed
-    return embed
-
-
 # define the cog class
 class owner(commands.Cog, name='Owner'):
     """
@@ -90,6 +17,80 @@ class owner(commands.Cog, name='Owner'):
 
         self.client = client
         self.lastmessage = {}
+
+    # define our static methods
+    @staticmethod
+    # guild embed method
+    def guildembed(guild):
+        # initialize the embed
+        embed = discord.Embed(title=f'{guild}', colour=discord.Colour.blue(), timestamp=datetime.datetime.now())
+
+        # initialize the bot count
+        botcount = 0
+
+        # for every user in guild members
+        for bot in guild.members:
+            # if the user is a bot
+            if bot.bot:
+                # increment botcount by 1
+                botcount += 1
+
+        # normal users is all the users - the bots
+        membercount = len(guild.members) - botcount
+
+        # get the number of text channels
+        TextChs = len(guild.text_channels)
+
+        # Count all the voice channels
+        voiceChs = len(guild.voice_channels)
+
+        # Count all the categories
+        catcount = len(guild.categories)
+
+        # Count all the roles
+        roles = len(guild.roles)
+
+        # get the guild icon url
+        servericonurl = str(guild.icon_url)
+
+        # set the embed text channel field
+        embed.add_field(name='Text channels', value=TextChs, inline=True)
+
+        # set the embed categories field
+        embed.add_field(name='categories', value=catcount, inline=True)
+
+        # Set the embed region field
+        embed.add_field(name='Region', value=f'{guild.region}', inline=True)
+
+        # Set the embed voice channels field
+        embed.add_field(name='Voice channels', value=voiceChs, inline=True)
+
+        # Set the server id field
+        embed.add_field(name='Server ID', value=f'{guild.id}', inline=True)
+
+        # Set the server owner field
+        embed.add_field(name='Server owner', value=f'{guild.owner}', inline=True)
+
+        # Set the total members field
+        embed.add_field(name='total members', value=len(guild.members), inline=True)
+
+        # Set the total humans field
+        embed.add_field(name='humans', value=membercount, inline=True)
+
+        # Set the total bots field
+        embed.add_field(name='bots', value=botcount, inline=True)
+
+        # Set the guild created field
+        embed.add_field(name='Created', value=f'{h.naturaltime(guild.created_at)}', inline=True)
+
+        # Set the roles field
+        embed.add_field(name='roles', value=roles)
+
+        # Set the embed thumbnail
+        embed.set_thumbnail(url=servericonurl)
+
+        # return the whole embed
+        return embed
 
     # dev top command
     @commands.is_owner()
@@ -314,7 +315,7 @@ class owner(commands.Cog, name='Owner'):
             pass
         else:
 
-            guild = guildembed(guild)
+            guild = self.guildembed(guild)
 
             return await ctx.send(embed=guild)
 

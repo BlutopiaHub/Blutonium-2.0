@@ -1,8 +1,9 @@
 # import the necessary modules
 from discord.ext import commands, tasks
-from client import Client
+from blutopia import Client
 from discord.utils import get
 import discord, datetime
+
 
 # Create our Cog class
 class moderationLoops(commands.Cog):

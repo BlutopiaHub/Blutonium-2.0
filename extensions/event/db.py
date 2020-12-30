@@ -1,6 +1,6 @@
 # import the necessary packages
 from discord.ext import commands
-from client import Client
+from blutopia import Client
 
 
 # define the cog class
