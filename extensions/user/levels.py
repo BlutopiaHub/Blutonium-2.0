@@ -240,6 +240,56 @@ class levels(commands.Cog, name='Levels'):
 
         return await ctx.send('Text successfully changed')
 
+    @commands.command(name='levels', aliases=['levelboard', 'lblevel'])
+    async def _levels(self, ctx, glbl=None):
+
+        # if glbl is None then set glbl to false
+        if glbl is None:
+            glbl = False
+
+        if glbl == 'global':
+            glbl = True
+
+        # get the levels database
+        lb = self.client.fetch_level_leaderboard(ctx.guild.id, glbl)
+
+        # create our leaderboard embed
+        if glbl:
+
+            emb = discord.Embed(title=f'Global levels leaderboard',
+                                timestamp=datetime.datetime.utcnow(),
+                                color=0x2F3136)
+            emb.set_thumbnail(url='https://proxy.blutopia.ca/img/blutonium.png')
+
+        else:
+
+            emb = discord.Embed(title=f'{ctx.guild} levels leaderboard',
+                                timestamp=datetime.datetime.utcnow(),
+                                color=0x2F3136)
+            emb.set_thumbnail(url= ctx.guild.icon_url)
+
+        entrynum = 1
+
+        for entry in lb:
+
+            # define our variables to put in the leaderaboard
+            userid, currentlevel, currentxp, requiredxp = entry[0], entry[1], entry[2], entry[3]
+
+            # get our user
+            user = self.client.fetch_member(ctx, userid)
+
+            # get an emoji we need
+            dashemoji = get(self.client.emojis, name='purple_dash')
+
+            user = user.mention if user is not None else userid
+
+            emb.add_field(name=f'#{entrynum} {dashemoji} **Level {currentlevel} | {currentxp}/{requiredxp}xp**\n',
+                          value=f"{user}",
+                          inline=False)
+
+            entrynum += 1
+
+        await ctx.send(embed=emb)
 """
             if user is None:
                 error = 'User not found!'

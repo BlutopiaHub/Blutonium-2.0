@@ -1119,7 +1119,7 @@ class Client(commands.Bot):
 
     def set_maxwarns(self, guildid: int, ammount: int):
 
-        autoban = self.guild_cache['warnconfig']['autoban']
+        autoban = self.guild_cache[guildid]['warnconfig']['autoban']
 
         autoban = 'true' if autoban else 'false'
 
@@ -1133,7 +1133,7 @@ class Client(commands.Bot):
 
     def fetch_points(self, userid: int):
 
-        return self.user_cache[userid]['points']
+        return int(self.user_cache[userid]['points'])
 
     def fetch_claimed(self, userid: int):
 
@@ -1230,6 +1230,23 @@ class Client(commands.Bot):
         rows = self.db.run(sql)
 
         # return the query
+        return rows
+
+    def fetch_level_leaderboard(self, guildid, glbl):
+
+        if glbl:
+
+            sql = "SELECT userid, currentlevel, currentxp, requiredxp " \
+                  "FROM levels ORDER BY currentlevel DESC, currentxp DESC LIMIT 10"
+
+        else:
+
+            sql = f"SELECT userid, currentlevel, currentxp, requiredxp " \
+                  f"FROM levels WHERE guildid = {guildid} " \
+                  f"ORDER BY currentlevel DESC, currentxp DESC LIMIT 10"
+
+        rows = self.db.run(sql)
+
         return rows
 
     def fetch_level_data(self, userid: int, guildid: int):

@@ -935,7 +935,7 @@ class utility(commands.Cog):
             return await ctx.send("``Could not find a sniped message``")
 
     # bot info command is to fetch info about the bot
-    @commands.command(name='botinfo', aliases=['stats', 'binfo', 'about'], help="Get information about the bot.")
+    @commands.command(name='botinfo', aliases=['stats', 'info', 'binfo', 'about'], help="Get information about the bot.")
     async def _botinfo(self, ctx):
 
         # get the server count of the bot
@@ -1021,7 +1021,7 @@ class utility(commands.Cog):
                               inline=True)
 
             # if we get an error it means the loaded extension is not cached
-            except KeyError:
+            except IndexError:
 
                 # we will just ignore this error
                 pass

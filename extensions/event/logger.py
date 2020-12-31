@@ -14,10 +14,11 @@ class logger(commands.Cog, name="logger"):
     def __init__(self, client):
 
         self.client: Client = client
+        self.trans = {"`": r"\`"}
 
     # on_voice_state_update event
     @commands.Cog.listener()
-    async def on_voice_state_update(self, usr: discord.Member, before, after):
+    async def on_voice_state_update(self, usr: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
 
         voicechannel = after.channel if before.channel is None else before.channel
 
@@ -240,23 +241,21 @@ class logger(commands.Cog, name="logger"):
         # make the embed
         if moderator is None:
             emb = discord.Embed(title=f'{msg.guild}',
-                                description=f'{msg.author.mention}\'s message in {msg.channel.mention} was deleted',
+                                description=f'{msg.author.mention}\'s message in {msg.channel.mention} was deleted\n\n'
+                                            f'***Message Content***\n'
+                                            f'```{msg.content.translate(str.maketrans(self.trans))}```',
                                 colour=0x2F3136,
                                 timestamp=datetime.datetime.utcnow())
         else:
             emb = discord.Embed(title=f'{msg.guild}',
                                 description=f'A message from {msg.author.mention} was deleted by ' +
-                                            f'{moderator.mention} in {msg.channel.mention} ',
+                                            f'{moderator.mention} in {msg.channel.mention}\n\n'
+                                            f'***Message Content***\n'
+                                            f'```{msg.content.translate(str.maketrans(self.trans))}```',
                                 colour=0x2F3136,
                                 timestamp=datetime.datetime.utcnow())
 
-        # set all the embed fields and variables
-        emb.add_field(name='Message Content',
-                      value=f'{msg.content}',
-                      inline=True)
-
-        emb.set_footer(text=f'Msg ID: {msg.id}')
-
+        emb.set_footer(text=f'Msg ID: {msg.id} User ID: {msg.author.id}')
         emb.set_thumbnail(url=msg.author.avatar_url)
 
         try:
@@ -301,23 +300,19 @@ class logger(commands.Cog, name="logger"):
         else:
             return
 
-        # set the embed
-        emb = discord.Embed(title=f'{before.author}',
-                            description=f'A message was edited in {before.channel.mention}',
+        # create the embed
+        emb = discord.Embed(title=f'Message Edit Log',
+                            description=f'[A message]'
+                                        f'(https://discord.com/channels/'
+                                        f'{before.guild.id}/{before.channel.id}/{before.id})'
+                                        f' was edited in {before.channel.mention}\n\n***Before***\n'
+                                        f'```{before.content.translate(str.maketrans(self.trans))}```\n***After***\n'
+                                        f'```{after.content.translate(str.maketrans(self.trans))}```',
+
                             colour=0x2F3136,
                             timestamp=datetime.datetime.utcnow())
 
-        # set all the embed components
-        emb.add_field(name='Before',
-                      value=f'{before.content}',
-                      inline=True)
-
-        emb.add_field(name='After',
-                      value=f'{after.content}',
-                      inline=True)
-
-        emb.set_footer(text=f'Msg ID: {before.id}')
-
+        emb.set_footer(text=f'Msg ID: {before.id} User ID: {before.author.id}')
         emb.set_thumbnail(url=before.author.avatar_url)
 
         try:

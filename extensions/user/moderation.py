@@ -213,7 +213,7 @@ class moderation(commands.Cog, name='Moderation'):
             self.client.set_autoban(ctx.guild.id, True)
 
             # send feedback
-            await ctx.send(f'{self.checkemoji} **Autoban has been turned on! Users will be banned after {maxwarns}')
+            await ctx.send(f'{self.checkemoji} **Autoban has been turned on! Users will be banned after {maxwarns} warns**')
 
     # cfg -> maxwarns is to set the ammount of warns before autoban takes affect
     @_config.command(name='maxwarns', aliases=['warns', 'setwarns'],
@@ -382,7 +382,7 @@ class moderation(commands.Cog, name='Moderation'):
             oldlogchannel = get(ctx.guild.text_channels, id=oldlogchannel)
 
         # if we get an error the log channel is invalid
-        except ValueError:
+        except TypeError:
 
             # set the variable to None since its gonna be used in the embed at the end
             oldlogchannel = None
@@ -498,9 +498,9 @@ class moderation(commands.Cog, name='Moderation'):
                 member = self.client.fetch_simple_member(ctx, inp)
 
                 if ctx.author.roles[-1].position <= member.roles[-1].position:
-                    emb = discord.Embed(title=f"{self.crossemoji} Member could not be banned!", colour=0xFCFCFC)
+                    emb = discord.Embed(title=f"{self.crossemoji} Member could not be banned!", color=0x2F3136)
                     emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
-                    return await ctx.send(emb=emb)
+                    return await ctx.send(embed=emb)
 
                 # ban the user
                 await member.ban(reason=f'[{ctx.author}] {reason}')
@@ -534,7 +534,7 @@ class moderation(commands.Cog, name='Moderation'):
                 member: discord.Member = self.client.fetch_simple_member(ctx, inp)
 
                 if ctx.author.roles[-1].position <= member.roles[-1].position:
-                    emb = discord.Embed(title=f"{self.crossemoji} Member could not be banned!", colour=0xFCFCFC)
+                    emb = discord.Embed(title=f"{self.crossemoji} Member could not be banned!", color=0x2F3136)
                     emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
 
                     return await ctx.send(embed=emb)
@@ -567,7 +567,7 @@ class moderation(commands.Cog, name='Moderation'):
                         pass
 
                     # create the error embed
-                    emb = discord.Embed(title=f"{self.crossemoji} Member could not be banned!", colour=0xFCFCFC)
+                    emb = discord.Embed(title=f"{self.crossemoji} Member could not be banned!", color=0x2F3136)
                     emb.add_field(name="Error", value=f"``{err}``")
                     await ctx.send(embed=emb)
                     return
@@ -576,7 +576,7 @@ class moderation(commands.Cog, name='Moderation'):
                 try:
 
                     # initialize the embed and add the fields
-                    embed = discord.Embed(title=f"{self.checkemoji} Member banned succesfully", colour=0xFCFCFC,
+                    embed = discord.Embed(title=f"{self.checkemoji} Member banned succesfully", color=0x2F3136,
                                           description=f"{member.mention}")
                     embed.add_field(name="Reason", value=reason, inline=True)
                     embed.add_field(name="Member ID", value=member.id, inline=True)
@@ -597,7 +597,7 @@ class moderation(commands.Cog, name='Moderation'):
                 except Exception:
 
                     # initialize the new embed
-                    embed = discord.Embed(title=f"{self.checkemoji} Member banned succesfully", colour=0xFCFCFC,
+                    embed = discord.Embed(title=f"{self.checkemoji} Member banned succesfully", color=0x2F3136,
                                           description=f"{member.mention}")
 
                     # in this case we will just set the reason field to "None" so we get no errors
@@ -731,9 +731,9 @@ class moderation(commands.Cog, name='Moderation'):
                 member: discord.Member = self.client.fetch_member(ctx, inp)
 
                 if ctx.author.roles[-1].position <= member.roles[-1].position:
-                    emb = discord.Embed(title=f"{self.crossemoji} Member could not be kicked!", colour=0xFCFCFC)
+                    emb = discord.Embed(title=f"{self.crossemoji} Member could not be kicked!", color=0x2F3136)
                     emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
-                    return await ctx.send(emb=emb)
+                    return await ctx.send(embed=emb)
                 # kick the user
                 await member.kick(reason=reason)
 
@@ -767,10 +767,10 @@ class moderation(commands.Cog, name='Moderation'):
                 member: discord.Member = self.client.fetch_member(ctx, inp)
 
                 if ctx.author.roles[-1].position <= member.roles[-1].position:
-                    emb = discord.Embed(title=f"{self.crossemoji} Member could not be kicked!", colour=0xFCFCFC)
+                    emb = discord.Embed(title=f"{self.crossemoji} Member could not be kicked!",color=0x2F3136)
                     emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
 
-                    return await ctx.send(emb=emb)
+                    return await ctx.send(embed=emb)
 
                 msg = None
                 # try and dm the user
@@ -869,7 +869,7 @@ class moderation(commands.Cog, name='Moderation'):
         # if the invokers top role is below the users top role
         if ctx.author.roles[-1].position <= user.roles[-1].position:
             # the invoker isnt allowed to warn someone above them
-            emb = discord.Embed(title=f"{self.crossemoji} Member could not be warned!", colour=0xFCFCFC)
+            emb = discord.Embed(title=f"{self.crossemoji} Member could not be warned!", color=0x2F3136)
             emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
 
             # send the embed and end the code
@@ -1022,7 +1022,7 @@ class moderation(commands.Cog, name='Moderation'):
         # if the invokes top role is under the users top role
         if ctx.author.roles[-1].position <= user.roles[-1].position:
             # the invoker does not have permission to mute the user
-            emb = discord.Embed(title=f"{self.crossemoji} Member could not be muted!", colour=0xFCFCFC)
+            emb = discord.Embed(title=f"{self.crossemoji} Member could not be muted!", color=0x2F3136)
             emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
             return await ctx.send(embed=emb)
 
@@ -1158,9 +1158,9 @@ class moderation(commands.Cog, name='Moderation'):
         # if the invokes top role is under the users top role
         if ctx.author.roles[-1].position <= user.roles[-1].position:
             # the invoker does not have permission to mute the user
-            emb = discord.Embed(title=f"{self.crossemoji} Member could not be unmuted!", colour=0xFCFCFC)
+            emb = discord.Embed(title=f"{self.crossemoji} Member could not be unmuted!", color=0x2F3136)
             emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
-            return await ctx.send(emb=emb)
+            return await ctx.send(embed=emb)
 
         muterole = await self.client.fetch_mute_role(ctx.guild)
         await user.remove_roles(muterole)
@@ -1449,7 +1449,8 @@ class moderation(commands.Cog, name='Moderation'):
         # for every page we need
         for x in i:
             # make an embed for the page
-            emb = discord.Embed(title=f"All guild bans page {x + 1}", color=discord.Color.dark_red())
+            emb = discord.Embed(title=f"All guild bans page {x + 1}", color=0x2F3136)
+
             emb.set_thumbnail(url=ctx.guild.icon_url)
 
             # add that to the embeds array
