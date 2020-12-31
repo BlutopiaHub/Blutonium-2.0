@@ -7,13 +7,13 @@ import discord
 import humanize as h
 import requests
 import time
-import operator
 
 from discord.ext import commands
 from discord.utils import get
 from discord import Spotify
 
 from blutopia import Client, setup as s
+from blutopia.utils import checkfornitro, chop_microseconds, request_song_info, find_joinpos
 
 
 # define the subclassed Help command
@@ -188,90 +188,6 @@ class utility(commands.Cog):
 
         # dash emoji
         self.dashemoji = get(self.support.emojis, name='purple_dash')
-
-    # Define our static methods that we will be using within our commands, but can also be used outside of the class.
-    # chop_microseconds will be used to remove microseconds from a datetime object
-    @staticmethod
-    def chop_microseconds(delta):
-        return delta - datetime.timedelta(microseconds=delta.microseconds)
-
-    # request_song_info is to get the link for genius lyrics of a song
-    @staticmethod
-    def request_song_info(song, artist):
-
-        # define the base url of the request
-        base_url = 'https://api.genius.com'
-
-        # define the headers of the web request
-        headers = {'Authorization': 'Bearer ' + s.geniuskey}
-
-        # define our search url
-        search_url = base_url + '/search'
-
-        # setup the query for the search
-        data = {'q': song + ' ' + artist}
-
-        # request the data from the genius api
-        response = requests.get(search_url, data=data, headers=headers)
-
-        # return the response from the server
-        return response
-
-    # make a method called checkfornitro. This checks if the user's avatar is animated and also checks if the
-    # user has a nitro booster role
-    @staticmethod
-    def checkfornitro(target):
-
-        # we will start assuming the user has no nitro
-        isnitro = False
-
-        # if the user has an animated avatar
-        if target.is_avatar_animated():
-            # set nitro to True
-            isnitro = True
-
-        # if the user has a nitro boost role
-        if "nitro booster" in [role.name.lower() for role in target.roles]:
-            # set nitro to True
-            isnitro = True
-
-        return isnitro
-
-    # this method is made to check the guild join position of the user
-    @staticmethod
-    def find_joinpos(target, guild):
-
-        # We will try catch this in case we get an unexpected error,
-        # we still want to be able to display the user info
-        try:
-
-            # get all the joins in the guild
-            joins = tuple(sorted(guild.members, key=operator.attrgetter('joined_at')))
-
-            # if theres any NoneTypes in the joins tuple were not going to deal with this
-            if None in joins:
-                # return a Nonetype
-                return None
-
-            # for every user in the joins tuple
-            for joinkey, elem in enumerate(joins):
-
-                # if the user is == to the target
-                if elem == target:
-                    # return the joinkey and the total ammount of joins
-                    return joinkey + 1, len(joins)
-
-            # if none these if statements are ran, we get here and we just return a Nonetype
-            return None
-
-        # in the event of an error
-        except Exception as err:
-
-            # print the error
-            print(err)
-
-            # return a NoneType
-            return None
 
     # Override the method that is called when the Cog is unloaded
     def cog_unload(self):
@@ -761,11 +677,6 @@ class utility(commands.Cog):
         # get the current guild
         guild: discord.Guild = ctx.guild
 
-        # create our embed
-        embed = discord.Embed(title=f'{guild}',
-                              color=0xFCFCFC,
-                              timestamp=datetime.datetime.utcnow())
-
         # get the ammount of bots in the server
         botcount = len([user for user in guild.members if user.bot])
         # get the ammount of humans
@@ -811,6 +722,12 @@ class utility(commands.Cog):
         # get the guildowner
         owner = guild.owner
 
+        # create our embed
+        embed = discord.Embed(title=f'{guild}',
+                              color=0xFCFCFC,
+                              timestamp=datetime.datetime.utcnow(),
+                              description=f'***Guild prefix is set to ``{prefix}``***')
+
         # Add our fields to the embed
         # add the info field
         embed.add_field(name='Guild info', value=f"{self.dashemoji}**ID:** `{guildid}`\n"
@@ -853,7 +770,7 @@ class utility(commands.Cog):
             # if the activity is an instance of Spotify
             if isinstance(activity, Spotify):
                 # get the duration of the song
-                dur = self.chop_microseconds(activity.duration)
+                dur = chop_microseconds(activity.duration)
 
                 # get the artist of the song
                 artist = activity.artist.split(';')[0]
@@ -865,7 +782,7 @@ class utility(commands.Cog):
                 album = activity.album
 
                 # request data about this song on the Genius API
-                request = self.request_song_info(song, artist)
+                request = request_song_info(song, artist)
 
                 # try and create a link out of our request
                 try:
@@ -1222,10 +1139,10 @@ class utility(commands.Cog):
                     pass
 
         # get our user's join position
-        joinpos = self.find_joinpos(user, ctx.guild)
+        joinpos = find_joinpos(user, ctx.guild)
 
         # set which emoji we will put on our nitro check field
-        nitro = self.checkemoji if self.checkfornitro(user) else self.crossemoji
+        nitro = self.checkemoji if checkfornitro(user) else self.crossemoji
 
         # check if the user is a bot owner
         owner = self.checkemoji if user.id in self.client.owner_ids else self.crossemoji
@@ -1252,7 +1169,7 @@ class utility(commands.Cog):
             badges += f'{staff}'
 
         # if the user has nitro
-        if self.checkfornitro(user):
+        if checkfornitro(user):
             # add the nitro badge
             badges += f'{dnitro} '
 

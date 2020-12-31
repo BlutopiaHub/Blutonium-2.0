@@ -7,6 +7,7 @@ import requests
 from discord.ext import commands
 from discord.utils import get
 from blutopia import Client
+from blutopia.utils import request_discord_user
 from random import randrange
 
 import humanize as h

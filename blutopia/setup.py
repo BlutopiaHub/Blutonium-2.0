@@ -6,7 +6,7 @@ PgDb = 'bet'
 PgPwrd = 'tr'
 PgHost = ''
 
-clientVer = "2.0-Beta0.30"
+clientVer = "2.0-ReleaseCandidate1"
 
 # API KEYS
 

@@ -28,6 +28,7 @@ class dbevents(commands.Cog, name="Dbevents"):
         
         # generate our user data
         self.client.create_user(member)
+        self.client.generate_level_data(member.id, member.guild.id)
         
     # method to add all data we didnt get while the bot was offline to the database
     async def build_database(self):
@@ -46,6 +47,9 @@ class dbevents(commands.Cog, name="Dbevents"):
 
             # generate our user data for every user
             self.client.all_users_data_build()
+
+            # generate missing level data for every guild
+            self.client.all_guilds_level_data_build()
 
         # In the event of an exception, print the error message
         except Exception as err:

@@ -44,7 +44,11 @@ class Client(commands.Bot):
         self.hackban_cache = {}
 
         # Connect to our Database.
-        self.db = pg8000.connect(setup.PgName, host=setup.PgHost, database=setup.PgDb, password=setup.PgPwrd)
+        self.db = pg8000.connect(setup.PgName,
+                                 host=setup.PgHost,
+                                 database=setup.PgDb,
+                                 password=setup.PgPwrd,
+                                 application_name='Blutonium Client')
 
         # Set our owner cache to the owner_ids variable. We need to do this so that when we use the @is_owner
         # decorator the owners are known.
@@ -303,7 +307,14 @@ class Client(commands.Bot):
             currentlevel = row[2]
             currentxp = row[3]
             requiredxp = row[4]
-            lastxp = row[5]
+
+            if row[5] is None:
+
+                lastxp = row[5]
+
+            elif isinstance(row[5], str):
+
+                lastxp = datetime.datetime.strptime(row[5], '%Y-%m-%d %H:%M:%S.%f')
 
             self.levels_cache[guildid][userid] = {"currentlevel": currentlevel, "currentxp": currentxp,
                                                   "requiredxp": requiredxp, "lastxp": lastxp}
@@ -417,6 +428,164 @@ class Client(commands.Bot):
 
         self.db.commit()
         return
+
+    # all guilds level data build generates all the missing level data in all the guilds
+    def all_guilds_level_data_build(self):
+
+        # for every guild that the clientuser is in
+        for guild in self.guilds:
+
+            # generate the guild level data
+            self.generate_mass_level_data(guild)
+
+        # build the level cache to add all our newest users
+        self.build_level_cache()
+
+    # generate mass level data is to generate all the level data in a guild
+    def generate_mass_level_data(self, guild):
+
+        # for every member of the guild
+        for member in guild.members:
+
+            # create our sql statement
+            sql = f"INSERT INTO levels (guildid, userid, currentlevel, currentxp, requiredxp, lastxp)" \
+                  f"VALUES ({guild.id}, {member.id}, 0, 0, default, null) ON CONFLICT DO NOTHING"
+
+            # run the sql
+            self.db.run(sql)
+
+        # commit the db
+        self.db.commit()
+
+    # generate level data is to generate level data for a single user
+    def generate_level_data(self, userid, guildid):
+
+        # create our sql statement
+        sql = f"INSERT INTO levels (guildid, userid, currentlevel, currentxp, requiredxp, lastxp)" \
+              f"VALUES ({guildid}, {userid}, 0, 0, default, null) ON CONFLICT DO NOTHING"
+
+        # run the sql
+        self.db.run(sql)
+
+        # commit the db
+        self.db.commit()
+
+        # add the new user to the cache
+        self.levels_cache[guildid][userid] = {"currentlevel": 0, "currentxp": 0,
+                                              "requiredxp": 100, "lastxp": None}
+
+    # level user our method that will be run on every message to do the level shit
+    def leveluser(self, userid, guildid):
+
+        # get the level data right now
+        leveldata = self.levels_cache[guildid][userid]
+
+        # turn all thedata into variables
+        lastxp = leveldata['lastxp']
+        currentxp = leveldata['currentxp']
+        currentlevel = leveldata['currentlevel']
+        requiredxp = leveldata['requiredxp']
+
+        # if the lastxp key is a datetime
+        if isinstance(leveldata['lastxp'], datetime.datetime):
+
+            cooldown = lastxp + datetime.timedelta(seconds=60)
+
+        # if it isnt that means its a Nonetype
+        else:
+
+            cooldown = datetime.datetime.now() - datetime.timedelta(seconds=1)
+
+        # intitialize our leveldup variable which will be returned at the end
+        # of this method
+        leveldup = (0, 0)
+        
+        # get the time now
+        now = datetime.datetime.now()
+
+        # change now to a string for the database
+        strnow = now.strftime('%Y-%m-%d %H:%M:%S.%f')
+
+        # if the cooldown is over
+        if now >= cooldown:
+
+            # create the random ammount of xp that the user recieves
+            xp_gained = random.randrange(5, 10)
+
+            # calculate the new ammount of xp that the user has
+            newxp = currentxp + xp_gained
+
+            # if the new xp is over the user's required xp
+            if newxp >= requiredxp:
+
+                # reset our user's xp and add the excess xp
+                vnewxp = xp_gained + (requiredxp - currentxp)
+
+                # increment the level
+                newlevel = currentlevel + 1
+
+                # change our leveldup variable that is returned
+                leveldup = (1, newlevel)
+
+                # update the database
+                self.db.run(f"UPDATE levels SET (currentxp, lastxp, currentlevel) = "
+                            f"({vnewxp}, '{strnow}', {newlevel}) WHERE userid = {userid} AND guildid = {guildid}")
+
+                # update the cache
+                self.levels_cache[guildid][userid]['currentlevel'] = newlevel
+                self.levels_cache[guildid][userid]['currentxp'] = vnewxp
+                self.levels_cache[guildid][userid]['lastxp'] = now
+
+            # if the xp is not over the user's required xp
+            else:
+
+                # update the db
+                self.db.run(f"UPDATE levels SET (currentxp, lastxp) = "
+                            f"({newxp}, '{strnow}') WHERE userid = {userid} AND guildid = {guildid}")
+
+                # update the cache
+                self.levels_cache[guildid][userid]['currentxp'] = newxp
+                self.levels_cache[guildid][userid]['lastxp'] = now
+
+        # commit the database changes
+        self.db.commit()
+
+        # return our leveldup var
+        return leveldup
+
+    def fetch_level_data(self, guildid, userid):
+
+        return self.levels_cache[guildid][userid]
+
+    def fetch_user_data(self, userid):
+        return self.user_cache[userid]
+
+    def set_ranktext(self, userid, text):
+
+        sql = f"UPDATE userdata SET ranktext = '{text}' WHERE userid = {userid}"
+
+        self.db.run(sql)
+        self.user_cache[userid]['ranktext'] = text
+
+        self.db.commit()
+
+    def set_accent(self, userid, accent):
+
+        sql = f"UPDATE userdata SET rankaccent = '{accent}' WHERE userid = {userid}"
+
+        self.db.run(sql)
+        self.user_cache[userid]['rankaccent'] = accent
+
+        self.db.commit()
+
+    def set_rankbg(self, userid, link):
+
+        sql = f"UPDATE userdata SET rankimage = '{link}' WHERE userid = {userid}"
+
+        self.db.run(sql)
+        self.user_cache[userid]['rankimage'] = link
+
+        self.db.commit()
 
     # All_guilds_data_build is to add every user that isnt in the database into the database.
     async def all_guilds_data_build(self):
@@ -877,9 +1046,9 @@ class Client(commands.Bot):
 
         sql = f"SELECT * FROM warns WHERE modid = {modid} AND guildid = {guildid}"
 
-        self.db.run(sql)
+        rows = self.db.run(sql)
 
-        return
+        return rows
 
     # fetch_all_warns gets all the warns for the specific guild
     def fetch_all_warns(self, guildid: int):
@@ -1047,7 +1216,6 @@ class Client(commands.Bot):
 
         # for every user in the guild
         for member in guildmembers:
-
             # add the user's id to the ids list
             ids.append(member.id)
 
@@ -1063,6 +1231,10 @@ class Client(commands.Bot):
 
         # return the query
         return rows
+
+    def fetch_level_data(self, userid: int, guildid: int):
+
+        return self.levels_cache[guildid][userid]
 
     # override our run command to add some of our own spice
     def run(self, *args, **kwargs):
