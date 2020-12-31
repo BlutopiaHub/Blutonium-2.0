@@ -3,25 +3,13 @@ import discord
 import humanize as h
 import json
 import re
-import requests
 import time
 from discord.ext import commands
 from discord.utils import get
 
 from blutopia import Client
-from blutopia.setup import TOKEN
-
-
-# has adminrole is a permission checker that will be on some commands
-def has_adminrole(ctx: commands.context):
-    allow = False
-
-    for role in ctx.author.roles:
-
-        if role.id in ctx.bot.fetch_adminroles(ctx.guild.id):
-            allow = True
-
-    return allow
+from blutopia.utils.checks import has_adminrole
+from blutopia.utils import request_discord_user
 
 
 # define the main cog class
@@ -71,16 +59,6 @@ class moderation(commands.Cog, name='Moderation'):
     # We also have a @commands.check_any decorator, This decorator takes the user and applies specified checks
 
     # TODO expand logging cfg
-
-    # request a user from the discord API
-    @staticmethod
-    def request_discord_user(userid):
-        base_url = 'https://discord.com/api/v8'
-        headers = {'Authorization': 'Bot ' + f'{TOKEN}'}
-        search_url = base_url + f'/users/{userid}'
-        response = requests.get(search_url, headers=headers)
-
-        return response
 
     # the CFG command group are subcommands to configure and customize everything on blutonium!
     @commands.check_any(commands.has_permissions(administrator=True), commands.is_owner(),
@@ -1010,7 +988,7 @@ class moderation(commands.Cog, name='Moderation'):
     @commands.check_any(commands.has_permissions(ban_members=True), commands.is_owner())
     @commands.command(name='warn-remove', aliases=['warn-delete', 'remwarn', 'warndel'],
                       help='Remove a warn from a user.', usage='`[CaseID]`')
-    async def _warnRemove(self, ctx, caseId):
+    async def _warnRemove(self, ctx, caseid):
 
         # get all the warns
         warns = self.client.fetch_all_warns(ctx.guild.id)
@@ -1021,7 +999,7 @@ class moderation(commands.Cog, name='Moderation'):
         # set the target warn to this warn if the warnID is equal to the selected warnID
         for warn in warns:
 
-            if warn[2] == int(caseId):
+            if warn[2] == int(caseid):
                 Delwarn = warn
 
         if Delwarn is None:
@@ -1310,7 +1288,7 @@ class moderation(commands.Cog, name='Moderation'):
             return await ctx.channel.send(embed=emb)
 
             # request the user from the discord api
-        req = self.request_discord_user(userid).text
+        req = request_discord_user(userid).text
 
         # convert the web request results to a json the request returned would look like this {'id':
         # '206250435848306692', 'username': 'Bicnu', 'avatar': '398c34f643240e91d2e2f34233d29745', 'discriminator':
@@ -1394,7 +1372,7 @@ class moderation(commands.Cog, name='Moderation'):
             return await ctx.channel.send(embed=emb)
 
             # request the user from the discord api
-        req = self.request_discord_user(userid).text
+        req = request_discord_user(userid).text
 
         # convert the web request results to a json the request returned would look like this {'id':
         # '206250435848306692', 'username': 'Bicnu', 'avatar': '398c34f643240e91d2e2f34233d29745', 'discriminator':
