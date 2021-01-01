@@ -42,7 +42,7 @@ class presence(commands.Cog, name='presenceProc'):
                     (f'over {guilds} guilds!', discord.ActivityType.watching),
                     ('Forgot your prefix? @mention me!', discord.ActivityType.watching),
                     ('over your mind', discord.ActivityType.watching),
-                    ('sick beats', discord.ActivityType.listening)]
+                    ('BLUTONIUM 2.0.0 UPDATE!', discord.ActivityType.playing)]
 
         # set the current status as the next index in the cycle
         current_status = statuses[next(self.displaying)]
