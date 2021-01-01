@@ -2,23 +2,23 @@
 
 ## ADDITIONS
 - Warning system. This includes the commands b/warn b/warns b/warn-remove and b/warns-given. After a set amount of warns, the user can be auto-banned, if the setting is enabled.
-- Hackbanning. b\hackban b\unhackban. Prematurely ban someone who isn't in the server. As soon as they join they will be banned.
-- More options in Config, b\config autoban and b\config maxwarns. You can set whether a user is auto-banned after an amount of warns. This amount is set by maxwarns and the banning is toggled with autoban.
-- b\mutelist command see all the active mutes in the guild.
+- Hackbanning. `b\hackban` `b\unhackban`. Prematurely ban someone who isn't in the server. As soon as they join they will be banned.
+- More options in Config, `b\config` autoban and `b\config` maxwarns. You can set whether a user is auto-banned after an amount of warns. This amount is set by maxwarns and the banning is toggled with autoban.
+- `b\mutelist` command see all the active mutes in the guild.
 - b/dev tempcmd to write code from inside of discord.
 - Added some new messages when starting up the bot.
 
 ## UPDATES
-- Updated b\mute. Muting is now always a temporary mute. But you can still mute people for hundreds of years (literally).
-- Updated b\minecraft. The Minecraft command was split into subcommand now, there are 6 subcommand server hypixel head body avatar and player.
-- Head and body show a 3d view of the Minecraft user's head and body. You can also add arguments to the command --size, --nohelm, --left. --size will of course change the size desired. --nohelm removes the Minecraft "helmet" from the skin. And --left will make the 3d body or head be facing left.
-- Avatar and Player will show a 2d view of the skin's head or body respectively. they have the same args besides --left because they are 2D. 
-- Hypixel fetches a user's hypixel stats from the hypixel API.
-- Server fetches info on any online Minecraft server.
-- b\snipe is now per channel and has the time deleted in the embed. 
-- b\avatar, b\servericon and b\enlarge now will work a lot better as the bot will download the image and send it as a file now.
+- Updated `b\mute`. Muting is now always a temporary mute. But you can still mute people for hundreds of years (literally).
+- Updated `b\minecraft`. The Minecraft command was split into subcommand now, there are 6 subcommand `server` `hypixel` `head` `body` `avatar` and `player`.
+- Head and body show a 3d view of the Minecraft user's head and body. You can also add arguments to the command `--size`, `--nohelm`, `--left`. `--size` will of course change the size desired. `--nohelm` removes the Minecraft "helmet" from the skin. And `--left` will make the 3d body or head be facing left.
+- `Avatar` and `Player` will show a 2d view of the skin's head or body respectively. they have the same args besides `--left` because they are 2D. 
+- `Hypixel` fetches a user's hypixel stats from the hypixel API.
+- `Server` fetches info on any online Minecraft server.
+- `b\snipe` is now per channel and has the time deleted in the embed. 
+- `b\avatar`, `b\servericon` and `b\enlarge` now will work a lot better as the bot will download the image and send it as a file now.
 - just running b/cfg without a subcommand now shows all the settings available and what they're set to.
-- Split the b\rankcard command into subcommands instead of using *args
+- Split the `b\rankcard `command into subcommands instead of using *args
 
 ## FIXES
 - Users can no longer ban/kick/mute other users with top roles that are above or equal to them. 
@@ -37,10 +37,10 @@
 - all extensions are organized into much easier to manage "modules" user, temp, sys, proc, loop, and event. 
 
 ## REMOVALS
-- Removed b\pp
-- Removed b\hypixel
+- Removed `b\pp`
+- Removed `b\hypixel`
 - Removed adminroles database table and added the admin roles to guilddata
-- Removed custom dispatches for load_extension and unload_extension, previously these custom events were used to cache extension uptimes, but that caching is built into the custom Client class now.
+- Removed custom dispatches for `load_extension` and `unload_extension`, previously these custom events were used to cache extension uptimes, but that caching is built into the custom Client class now.
  
 
 # PLEASE REPORT ANY BUGS YOU FIND! Thank you for supporting blutonium!
