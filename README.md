@@ -43,4 +43,4 @@
 - Removed custom dispatches for load_extension and unload_extension, previously these custom events were used to cache extension uptimes, but that caching is built into the custom Client class now.
  
 
-# PLEASE REPLY WITH ANY BUGS YOU FIND! Thank you for supporting blutonium!
+# PLEASE REPORT ANY BUGS YOU FIND! Thank you for supporting blutonium!
