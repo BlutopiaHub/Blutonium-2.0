@@ -7,9 +7,16 @@ PgPwrd = 'tr'
 PgHost = ''
 
 
-clientVer = "2.0.0"
+clientVer = "2.1.0"
+
 
 # API KEYS
+geniuskey = ''
+twitchkey = ""
+hypixelkey = ""
+
+
+
 
 
 
