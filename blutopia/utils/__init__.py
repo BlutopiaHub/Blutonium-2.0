@@ -7,6 +7,40 @@ from blutopia import setup as s
 import operator
 
 
+# define the sniped message class
+class snipedMessage:
+
+    # init code
+    def __init__(self, message):
+        # set the message content as a self variable
+        self.content = message.content
+
+        # set the message author as a self variable
+        self.author = message.author
+
+        # set the message channel as a self variable
+        self.channel = message.channel
+
+        # set the message created timestamp as a self variable
+        self.created_at = message.created_at
+
+        # set the Current time as the deleted_at self variable (We do this beacuase we will only create an instance
+        # of this class once a message is deleted. Which means we can track when the message was deleted.)
+        self.deleted_at = datetime.datetime.now()
+
+        # set the message attachments as a self variable
+        self.attachments = message.attachments
+
+    # repr code
+    def __repr__(self):
+        # return what you want the class to return when no self proprety is selected
+        return f'<snipedMessage Instance, ' \
+               f'author={str(self.author)} ' \
+               f'channel={str(self.channel)} ' \
+               f'deleted_at={self.deleted_at}>'
+
+
+
 # Define our static methods that we will be using within our commands, but can also be used outside of the class.
 # chop_microseconds will be used to remove microseconds from a datetime object
 def chop_microseconds(delta):

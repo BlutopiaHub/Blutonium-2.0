@@ -27,6 +27,7 @@ class levels(commands.Cog, name='Levels'):
         if ctx.valid:
 
             if ctx.command:
+
                 return
 
         self.client.leveluser(message.author.id, message.guild.id)

@@ -553,6 +553,85 @@ class Client(commands.Bot):
         # return our leveldup var
         return leveldup
 
+    # level user our method that will be run on every message to do the level shit
+    def levelvcuser(self, userid, guildid):
+
+        # get the level data right now
+        leveldata = self.levels_cache[guildid][userid]
+
+        # turn all thedata into variables
+        lastxp = leveldata['lastxp']
+        currentxp = leveldata['currentxp']
+        currentlevel = leveldata['currentlevel']
+        requiredxp = leveldata['requiredxp']
+
+        # if the lastxp key is a datetime
+        if isinstance(leveldata['lastxp'], datetime.datetime):
+
+            cooldown = lastxp + datetime.timedelta(seconds=60)
+
+        # if it isnt that means its a Nonetype
+        else:
+
+            cooldown = datetime.datetime.now() - datetime.timedelta(seconds=1)
+
+        # intitialize our leveldup variable which will be returned at the end
+        # of this method
+        leveldup = (0, 0)
+
+        # get the time now
+        now = datetime.datetime.now()
+
+        # change now to a string for the database
+        strnow = now.strftime('%Y-%m-%d %H:%M:%S.%f')
+
+        # if the cooldown is over
+        if now >= cooldown:
+
+            # create the random ammount of xp that the user recieves
+            xp_gained = random.randrange(1, 5)
+
+            # calculate the new ammount of xp that the user has
+            newxp = currentxp + xp_gained
+
+            # if the new xp is over the user's required xp
+            if newxp >= requiredxp:
+
+                # reset our user's xp and add the excess xp
+                vnewxp = xp_gained + (requiredxp - currentxp)
+
+                # increment the level
+                newlevel = currentlevel + 1
+
+                # change our leveldup variable that is returned
+                leveldup = (1, newlevel)
+
+                # update the database
+                self.db.run(f"UPDATE levels SET (currentxp, lastxp, currentlevel) = "
+                            f"({vnewxp}, '{strnow}', {newlevel}) WHERE userid = {userid} AND guildid = {guildid}")
+
+                # update the cache
+                self.levels_cache[guildid][userid]['currentlevel'] = newlevel
+                self.levels_cache[guildid][userid]['currentxp'] = vnewxp
+                self.levels_cache[guildid][userid]['lastxp'] = now
+
+            # if the xp is not over the user's required xp
+            else:
+
+                # update the db
+                self.db.run(f"UPDATE levels SET (currentxp, lastxp) = "
+                            f"({newxp}, '{strnow}') WHERE userid = {userid} AND guildid = {guildid}")
+
+                # update the cache
+                self.levels_cache[guildid][userid]['currentxp'] = newxp
+                self.levels_cache[guildid][userid]['lastxp'] = now
+
+        # commit the database changes
+        self.db.commit()
+
+        # return our leveldup var
+        return leveldup
+
     def fetch_level_data(self, guildid, userid):
 
         return self.levels_cache[guildid][userid]

@@ -22,7 +22,13 @@ class voicelevels(commands.Cog):
 
         self.voice_client_loop.start()
 
-    @tasks.loop(seconds=5)
+    # when the Cog is unloaded
+    def cog_unload(self):
+        
+        # stop the loop
+        self.voice_client_loop.stop()
+        
+    @tasks.loop(minutes=2)
     async def voice_client_loop(self):
 
         for guildid in self.voiceUsers.keys():
@@ -41,8 +47,7 @@ class voicelevels(commands.Cog):
 
                     return
 
-                print(member)
-                self.client.leveluser(user, guildid)
+                self.client.levelvcuser(user, guildid)
 
         # for every guild in the client guilds
 

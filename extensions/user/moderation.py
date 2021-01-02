@@ -880,6 +880,7 @@ class moderation(commands.Cog, name='Moderation'):
 
         # add the warn 
         self.client.warn(ctx.guild.id, user.id, caseid, ctx.author.id, reason)
+        self.client.dispatch('user_warn', ctx.guild, user)
 
         # create the feedback for the moderator
         emb = discord.Embed(title="✅ Warn sent successfully", colour=0x2F3136)
@@ -894,8 +895,14 @@ class moderation(commands.Cog, name='Moderation'):
                             timestamp=datetime.datetime.utcnow())
         emb.add_field(name='reason', value=reason)
 
-        # send the notify to the user
-        await user.send(embed=emb)
+        try:
+
+            # send the notify to the user
+            await user.send(embed=emb)
+
+        except discord.HTTPException:
+
+            pass
 
     # warns command to list a users warn
     @commands.check_any(commands.has_permissions(ban_members=True), commands.is_owner())

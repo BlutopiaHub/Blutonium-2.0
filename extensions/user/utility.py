@@ -13,7 +13,7 @@ from discord.utils import get
 from discord import Spotify
 
 from blutopia import Client, setup as s
-from blutopia.utils import checkfornitro, chop_microseconds, request_song_info, find_joinpos
+from blutopia.utils import checkfornitro, chop_microseconds, request_song_info, find_joinpos, snipedMessage
 
 
 # define the subclassed Help command
@@ -94,40 +94,6 @@ class helpCommand(commands.MinimalHelpCommand):
 
         embed.set_footer(text=self.get_ending_note())
         await self.get_destination().send(embed=embed)
-
-
-# define the sniped message class
-class snipedMessage:
-
-    # init code
-    def __init__(self, message):
-        # set the message content as a self variable
-        self.content = message.content
-
-        # set the message author as a self variable
-        self.author = message.author
-
-        # set the message channel as a self variable
-        self.channel = message.channel
-
-        # set the message created timestamp as a self variable
-        self.created_at = message.created_at
-
-        # set the Current time as the deleted_at self variable (We do this beacuase we will only create an instance
-        # of this class once a message is deleted. Which means we can track when the message was deleted.)
-        self.deleted_at = datetime.datetime.now()
-
-        # set the message attachments as a self variable
-        self.attachments = message.attachments
-
-    # repr code
-    def __repr__(self):
-        # return what you want the class to return when no self proprety is selected
-        return f'<snipedMessage Instance, ' \
-               f'author={str(self.author)} ' \
-               f'channel={str(self.channel)} ' \
-               f'deleted_at={self.deleted_at}>'
-
 
 # define the cog class
 class utility(commands.Cog):
@@ -1067,7 +1033,7 @@ class utility(commands.Cog):
         await msg.edit(embed=emb, content='\u2002')
 
     # userinfo command is to get information on a user and display it
-    @commands.command(name='userinfo', aliases=['ui', 'uinfo', 'profile', 'whois', ''])
+    @commands.command(name='userinfo', aliases=['ui', 'uinfo', 'profile', 'whois'])
     async def _userinfo(self, ctx, *, user=None):
 
         # get some emojis from our support server for badges

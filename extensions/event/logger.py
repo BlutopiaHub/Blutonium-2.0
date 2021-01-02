@@ -85,8 +85,10 @@ class logger(commands.Cog, name="logger"):
                 # get the log channel id 
                 chanId = logdata[2]
 
+
                 # get the log channel
                 channel = get(before.channel.guild.channels, id=chanId)
+
 
                 # if the after channel is none, They left the channel they were in
                 if after.channel is None:
@@ -100,7 +102,7 @@ class logger(commands.Cog, name="logger"):
 
             # if we get an error its because the beore channel is None which means our channel variable would be
             # invalid. This also tells us that a user just joined a channel.
-            except discord.HTTPException as err:
+            except AttributeError as err:
 
                 # print the error
                 print(err)
@@ -152,7 +154,7 @@ class logger(commands.Cog, name="logger"):
                 channel = get(after.channel.guild.channels, id=chanId)
                 return await channel.send(embed=emb)
             
-            except discord.HTTPException as err:
+            except discord.DiscordException as err:
                 
                 # print the exception
                 print(err)
@@ -197,7 +199,7 @@ class logger(commands.Cog, name="logger"):
                 channel = get(after.channel.guild.channels, id=chanId)
                 return await channel.send(embed=emb)
             
-            except discord.HTTPException as err:
+            except discord.DiscordException as err:
                 
                 # print the error
                 print(err)
