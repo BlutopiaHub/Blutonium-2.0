@@ -1,28 +1,23 @@
-# Blutonium Update 2.1.0 Changelog
+# Blutonium Update 2.2.0 Changelog
 
 ## ADDITIONS
 
-### Voice chat leveling! 
-- Every minute in voice chat, you will be issued some XP
-- The xp for voice chat is lower than xp for text chat
-- The xp will not be issued if the user is muted, server muted, afk, deafened, or server deafened.
-- Voice chat xp and Text chat xp are on the same timer. This means that if you just recieved XP for chatting in text chat and then right after another minute in vc pases, you will not recieve that VC xp because you are on cooldown for your chat xp.
-
-### Warn autobans!
-- After the ammount of warns a user has exceeds or is equal to the `maxwarns` config option the user will be automatically banned.
-
+- Kick and ban logs have been added back! Completed with an all new design and the log will show exactly who banned/kicked the user
+- Added Member Unban and Ban logs
+- Added Member kick log
+- Added a new alias to `userinfo`; `fetch`
 
 ## UPDATES
-- None
+- Changed the title on the Message Delete log to 'Message Delete Log' Instead of the guild name
 
 ## FIXES
-- Fixed a bug where the bot would not log when a user joined a voice channel.
-- Fixed a big where literally nothing, was an alias for `userinfo`.
+- Fixed some logging bugs where the bot would not correctly fetch the guild logging channel
 
 ## IMPROVMENTS
-- Moved some methods and classes into `blutopia/utils`.
+- None
 
 ## REMOVALS
-- None
+- Custom text for rank cards has been temporarily removed as the API for my profanity filter
+  went down, if it doesnt go back up, the API will be changed in 2.3.0
 
 # PLEASE REPORT ANY BUGS YOU FIND! Thank you for supporting blutonium!

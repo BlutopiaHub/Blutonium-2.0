@@ -7,8 +7,8 @@ PgPwrd = 'tr'
 PgHost = ''
 
 
-clientVer = "2.1.0"
 
+clientVer = "2.2.0"
 
 # API KEYS
 geniuskey = ''

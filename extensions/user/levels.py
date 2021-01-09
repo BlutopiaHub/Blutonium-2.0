@@ -118,7 +118,13 @@ class levels(commands.Cog, name='Levels'):
         if text is None:
             text = " "
 
-        text = purgoclient.retrieve_filtered_text(text)
+        try:
+
+            text = purgoclient.retrieve_filtered_text(text)
+
+        except:
+
+            text = ' '
 
         draw.text((200, 85), f'{text}', align='center', font=font3, fill=accent)
 

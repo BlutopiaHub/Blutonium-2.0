@@ -1033,7 +1033,7 @@ class utility(commands.Cog):
         await msg.edit(embed=emb, content='\u2002')
 
     # userinfo command is to get information on a user and display it
-    @commands.command(name='userinfo', aliases=['ui', 'uinfo', 'profile', 'whois'])
+    @commands.command(name='userinfo', aliases=['ui', 'uinfo', 'profile', 'whois', 'fetch'])
     async def _userinfo(self, ctx, *, user=None):
 
         # get some emojis from our support server for badges

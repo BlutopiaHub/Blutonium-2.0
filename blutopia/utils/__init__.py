@@ -40,7 +40,6 @@ class snipedMessage:
                f'deleted_at={self.deleted_at}>'
 
 
-
 # Define our static methods that we will be using within our commands, but can also be used outside of the class.
 # chop_microseconds will be used to remove microseconds from a datetime object
 def chop_microseconds(delta):

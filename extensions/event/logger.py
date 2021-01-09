@@ -85,9 +85,15 @@ class logger(commands.Cog, name="logger"):
                 # get the log channel id 
                 chanId = logdata[2]
 
+                if after.channel is None:
 
-                # get the log channel
-                channel = get(before.channel.guild.channels, id=chanId)
+                    # get the log channel
+                    channel = get(before.channel.guild.channels, id=chanId)
+
+                if before.channel is None:
+
+                    # get the log channel
+                    channel = get(after.channel.guild.channels, id=chanId)
 
 
                 # if the after channel is none, They left the channel they were in
@@ -102,19 +108,10 @@ class logger(commands.Cog, name="logger"):
 
             # if we get an error its because the beore channel is None which means our channel variable would be
             # invalid. This also tells us that a user just joined a channel.
-            except AttributeError as err:
-
-                # print the error
+            except Exception as err:
+                
+                # print our error
                 print(err)
-
-                # get the log channel id
-                chanId = logdata[2]
-
-                # set the channel variable to get it from the "after" voice state
-                channel = get(after.channel.guild.channels, id=chanId)
-
-                # send the log
-                return await channel.send(embed=emb3)
 
         # mute logger
         # if the users mute state is the same
@@ -151,10 +148,19 @@ class logger(commands.Cog, name="logger"):
             try:
                 
                 chanId = logdata[2]
-                channel = get(after.channel.guild.channels, id=chanId)
+
+                if before.channel is None:
+
+                    channel = get(after.channel.guild.channels, id=chanId)
+
+
+                if after.channel is None:
+
+                    channel = get(before.channel.guild.channels, id=chanId)    
+            
                 return await channel.send(embed=emb)
             
-            except discord.DiscordException as err:
+            except Exception as err:
                 
                 # print the exception
                 print(err)
@@ -196,10 +202,18 @@ class logger(commands.Cog, name="logger"):
             try:
                 
                 chanId = logdata[2]
-                channel = get(after.channel.guild.channels, id=chanId)
+
+                if before.channel is None:
+
+                    channel = get(after.channel.guild.channels, id=chanId)
+
+                if after.channel is None:
+
+                    channel = get(before.channel.guild.channels, id=chanId)
+
                 return await channel.send(embed=emb)
             
-            except discord.DiscordException as err:
+            except Exception as err:
                 
                 # print the error
                 print(err)
@@ -242,7 +256,7 @@ class logger(commands.Cog, name="logger"):
 
         # make the embed
         if moderator is None:
-            emb = discord.Embed(title=f'{msg.guild}',
+            emb = discord.Embed(title=f'Message Delete Log',
                                 description=f'{msg.author.mention}\'s message in {msg.channel.mention} was deleted\n\n'
                                             f'***Message Content***\n'
                                             f'```{msg.content.translate(str.maketrans(self.trans))}```',
@@ -334,18 +348,155 @@ class logger(commands.Cog, name="logger"):
             
             return
 
-    # on_member_ban event
     @commands.Cog.listener()
     async def on_member_ban(self, guild, user):
 
-        # placeholder code here
+        # for all the last 13 ban audit logs
+        async for entry in guild.audit_logs(limit=13, action=discord.AuditLogAction.ban):
+
+            # if the user that was banned is the same user that was banned in our event
+            if entry.target.id == user.id:
+
+                # if the user that banned the user is ourself
+                if entry.user.id == self.client.user.id:
+
+                    # return because the event was already dispatched
+                    return
+
+                # if were not the ones who banned them, we will need some info from the ban for the dispatch
+                else:
+
+                    # get the reason for the ban
+                    reason = entry.reason
+
+                    # get the moderator that banned the user
+                    moderator = entry.user
+
+                    # dispatch our custom member banend event with our botban variable as false
+                    return self.client.dispatch('member_banned', guild, user, moderator, reason)
+
+    # on_member_ban event
+    @commands.Cog.listener()
+    async def on_member_banned(self, guild, member, mod, reason):
+
+        # set our moderator variable to the mention of the moderator if the moderator is not None
+        moderator = mod.mention if mod is not None else "Someone I could not find."
+
+        # set our reason variable to a string of None if its none
+        reason = "None" if reason is None else reason
+
+        # create our embed for the ban entry
+        embed = discord.Embed(title='Member Ban log',
+                              description=f'<@{member.id}> ({member}) was banned by {moderator}\n'
+                                          f'\n**Reason**\n```{reason}```',
+                              color=0x2F3136,
+                              timestamp=datetime.datetime.utcnow())
+
+        # add the avatar url as the thumbnail
+        embed.set_thumbnail(url=member.avatar_url)
+
+        # get the logging channel
+        logchannelid = self.client.guild_cache[guild.id]['logchannelid']
+        logchannel = get(guild.text_channels, id=logchannelid)
+
+        # get the log status
+        logstatus = self.client.guild_cache[guild.id]['logsenabled']
+
+        # if logging is on
+        if logstatus:
+
+            # send the log
+            await logchannel.send(embed=embed)
+
         return
 
     # on_member_unban event
     @commands.Cog.listener()
     async def on_member_unban(self, guild, user):
 
-        # placeholder code here
+        # create our embed for the ban entry
+        embed = discord.Embed(title='Member Unban log',
+                              description=f'<@{user.id}> ({user}) was unbanned from the guild',
+                              color=0x2F3136,
+                              timestamp=datetime.datetime.utcnow())
+
+        # add the avatar url as the thumbnail
+        embed.set_thumbnail(url=user.avatar_url)
+
+        # get the logging channel
+        logchannelid = self.client.guild_cache[guild.id]['logchannelid']
+        logchannel = get(guild.text_channels, id=logchannelid)
+
+        # get the log status
+        logstatus = self.client.guild_cache[guild.id]['logsenabled']
+
+        # if logging is on
+        if logstatus:
+            # send the log
+            await logchannel.send(embed=embed)
+
+        # stop the code
+        return
+
+    @commands.Cog.listener()
+    async def on_member_remove(self, member):
+
+        # for all the last 13 ban audit logs
+        async for entry in member.guild.audit_logs(limit=13, action=discord.AuditLogAction.kick):
+
+            # if any of the kicked members are the user that just left
+            if entry.target.id == member.id:
+
+                # if blutonium was the one that kicked them
+                if entry.user.id == self.client.user.id:
+
+                    # the event has already been dispatched
+                    return
+
+                # if it was someone else then we need to dispatch the event
+                else:
+
+                    # get the reason for the kick
+                    reason = entry.reason
+
+                    # get the moderator that kicked the user
+                    mod = entry.user
+
+                    # send the event
+                    return self.client.dispatch('member_kicked', member.guild, member, mod, reason)
+
+    @commands.Cog.listener()
+    async def on_member_kicked(self, guild, member, mod, reason):
+
+        # set our moderator variable to the mention of the moderator if the moderator is not None
+        moderator = mod.mention if mod is not None else "Someone I could not find."
+
+        # set our reason variable to a string of None if its none
+        reason = "None" if reason is None else reason
+
+        # create our embed for the ban entry
+        embed = discord.Embed(title='Member Kick log',
+                              description=f'<@{member.id}> ({member}) was kicked by {moderator}\n'
+                                          f'\n**Reason**\n```{reason}```',
+                              color=0x2F3136,
+                              timestamp=datetime.datetime.utcnow())
+
+        # add the avatar url as the thumbnail
+        embed.set_thumbnail(url=member.avatar_url)
+
+        # get the logging channel
+        logchannelid = self.client.guild_cache[guild.id]['logchannelid']
+        logchannel = get(guild.text_channels, id=logchannelid)
+
+        # get the log status
+        logstatus = self.client.guild_cache[guild.id]['logsenabled']
+
+        # if logging is on
+        if logstatus:
+
+            # send the log
+            await logchannel.send(embed=embed)
+
         return
 
 

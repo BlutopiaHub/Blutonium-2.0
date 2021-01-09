@@ -213,7 +213,8 @@ class moderation(commands.Cog, name='Moderation'):
             self.client.set_autoban(ctx.guild.id, True)
 
             # send feedback
-            await ctx.send(f'{self.checkemoji} **Autoban has been turned on! Users will be banned after {maxwarns} warns**')
+            await ctx.send(f'{self.checkemoji} **Autoban has been turned on!'
+                           f' Users will be banned after {maxwarns} warns**')
 
     # cfg -> maxwarns is to set the ammount of warns before autoban takes affect
     @_config.command(name='maxwarns', aliases=['warns', 'setwarns'],
@@ -502,8 +503,23 @@ class moderation(commands.Cog, name='Moderation'):
                     emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
                     return await ctx.send(embed=emb)
 
-                # ban the user
-                await member.ban(reason=f'[{ctx.author}] {reason}')
+                # try to ban the user
+                try:
+
+                    # ban the user
+                    await member.ban(reason=f'[{ctx.author}] {reason}')
+
+                # if we get an error it doesnt really matter since this was a silent ban so just
+                # continue so we can delete the invokers message
+                except Exception:
+
+                    # continue on
+                    pass
+
+                else:
+
+                    # dispatch our member banned custom event for logging
+                    self.client.dispatch('member_banned', ctx.guild, member, ctx.author, reason)
 
                 # try and delete the message invoking the command
                 try:
@@ -571,6 +587,11 @@ class moderation(commands.Cog, name='Moderation'):
                     emb.add_field(name="Error", value=f"``{err}``")
                     await ctx.send(embed=emb)
                     return
+                # if we sucseed
+                else:
+
+                    # dispatch our member banned event
+                    self.client.dispatch('member_banned', ctx.guild, member, ctx.author, reason)
 
                 # create and send the ban succesful embed
                 try:
@@ -735,7 +756,13 @@ class moderation(commands.Cog, name='Moderation'):
                     emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
                     return await ctx.send(embed=emb)
                 # kick the user
-                await member.kick(reason=reason)
+
+                try:
+                    await member.kick(reason=reason)
+                except Exception:
+                    pass
+                else:
+                    self.client.dispatch('member_kicked', ctx.guild, member, ctx.author, reason)
 
                 # try and delete the message invoking the command
                 try:
@@ -767,7 +794,7 @@ class moderation(commands.Cog, name='Moderation'):
                 member: discord.Member = self.client.fetch_member(ctx, inp)
 
                 if ctx.author.roles[-1].position <= member.roles[-1].position:
-                    emb = discord.Embed(title=f"{self.crossemoji} Member could not be kicked!",color=0x2F3136)
+                    emb = discord.Embed(title=f"{self.crossemoji} Member could not be kicked!", color=0x2F3136)
                     emb.add_field(name="Error", value=f"``You don't have permission to do that!``")
 
                     return await ctx.send(embed=emb)
@@ -804,6 +831,10 @@ class moderation(commands.Cog, name='Moderation'):
                     emb.add_field(name="Error", value=f"``{err}``")
                     await ctx.send(embed=emb)
                     return
+
+                else:
+
+                    self.client.dispatch('member_kicked', ctx.guild, member, ctx.author, reason)
 
                 # create and send the kick succesful embed
                 try:
