@@ -2,3 +2,5 @@ __pycache__
 .vscode
 venv
 .idea
+/blutopia/setupdev
+/Changelogs/2.1.0.md
