@@ -1,23 +1,13 @@
-# Blutonium Update 2.2.0 Changelog
+# Blutonium Update 2.2.1 Changelog
 
 ## ADDITIONS
-
-- Kick and ban logs have been added back! Completed with an all new design and the log will show exactly who banned/kicked the user
-- Added Member Unban and Ban logs
-- Added Member kick log
-- Added a new alias to `userinfo`; `fetch`
-
+- None
 ## UPDATES
-- Changed the title on the Message Delete log to 'Message Delete Log' Instead of the guild name
-
+- None
 ## FIXES
-- Fixed some logging bugs where the bot would not correctly fetch the guild logging channel
-
+- Fixed a bug where blutonium would not log new guilds correctly, causing bugs in the cfg command and others
 ## IMPROVMENTS
 - None
-
 ## REMOVALS
-- Custom text for rank cards has been temporarily removed as the API for my profanity filter
-  went down, if it doesnt go back up, the API will be changed in 2.3.0
-
+- None
 # PLEASE REPORT ANY BUGS YOU FIND! Thank you for supporting blutonium!

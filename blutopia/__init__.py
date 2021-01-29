@@ -430,19 +430,19 @@ class Client(commands.Bot):
         return
 
     # all guilds level data build generates all the missing level data in all the guilds
-    def all_guilds_level_data_build(self):
+    async def all_guilds_level_data_build(self):
 
         # for every guild that the clientuser is in
         for guild in self.guilds:
 
             # generate the guild level data
-            self.generate_mass_level_data(guild)
+            await self.generate_mass_level_data(guild)
 
         # build the level cache to add all our newest users
         self.build_level_cache()
 
     # generate mass level data is to generate all the level data in a guild
-    def generate_mass_level_data(self, guild):
+    async def generate_mass_level_data(self, guild):
 
         # for every member of the guild
         for member in guild.members:
@@ -704,8 +704,8 @@ class Client(commands.Bot):
 
             prefix = 'b/'
 
-            sql = f"INSERT INTO guilddata (guildid, adminroles, logs, muterole, prefix, logchannelid) VALUES " \
-                  f"({guild.id},null,{logs},{muterole.id},'{prefix}',{logchan}) ON CONFLICT DO NOTHING "
+            sql = f"INSERT INTO guilddata (guildid, adminroles, logs, muterole, prefix, logchannelid,warnconfig ) VALUES " \
+                  f"({guild.id},"+ "{}" + f",{logs},{muterole.id},'{prefix}',{logchan}, "+"'{\"autoban\":false,\"maxwarns\":5}'"+") ON CONFLICT DO NOTHING "
 
             try:
 
@@ -713,8 +713,8 @@ class Client(commands.Bot):
 
             except Exception:
 
-                sql = f"INSERT INTO guilddata (guildid, adminroles, logs, muterole, prefix, logchannelid) VALUES " \
-                      f"({guild.id}, null, {logs}, {muterole.id}, 'b/', 0 ) ON CONFLICT DO NOTHING"
+                sql = f"INSERT INTO guilddata (guildid, adminroles, logs, muterole, prefix, logchannelid,warnconfig ) VALUES " \
+                  f"({guild.id}," + "{}" + f",{logs},{muterole.id},'b/', 0, " + "'{\"autoban\":false,\"maxwarns\":5}'" + ") ON CONFLICT DO NOTHING "
 
                 self.db.run(sql)
 
@@ -846,8 +846,8 @@ class Client(commands.Bot):
 
         prefix = 'b/'
 
-        sql = f"INSERT INTO guilddata (guildid, adminroles, logs, muterole, prefix, logchannelid) VALUES " \
-              f"({guild.id},null,{logs},{muterole.id},'{prefix}',{logchan}) ON CONFLICT DO NOTHING"
+        sql = f"INSERT INTO guilddata (guildid, adminroles, logs, muterole, prefix, logchannelid,warnconfig ) VALUES " \
+              f"({guild.id}," + "{}" + f",{logs},{muterole.id},'{prefix}',{logchan}, " + "'{\"autoban\":false,\"maxwarns\":5}'" + ") ON CONFLICT DO NOTHING "
 
         try:
 
@@ -855,8 +855,8 @@ class Client(commands.Bot):
 
         except Exception:
 
-            sql = f"INSERT INTO guilddata (guildid, adminroles, logs, muterole, prefix, logchannelid) VALUES " \
-                  f"({guild.id}, null, {logs}, {muterole.id}, 'b/', 0 ) ON CONFLICT DO NOTHING"
+            sql = f"INSERT INTO guilddata (guildid, adminroles, logs, muterole, prefix, logchannelid,warnconfig ) VALUES " \
+                  f"({guild.id}," + "{}" + f",{logs},{muterole.id},'b/', 0, " + "'{\"autoban\":false,\"maxwarns\":5}'" + ") ON CONFLICT DO NOTHING "
 
             self.db.run(sql)
 

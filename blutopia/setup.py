@@ -8,7 +8,7 @@ PgHost = ''
 
 
 
-clientVer = "2.2.0"
+clientVer = "2.2.1"
 
 # API KEYS
 geniuskey = ''

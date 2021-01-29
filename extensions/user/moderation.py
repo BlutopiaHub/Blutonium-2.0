@@ -106,22 +106,25 @@ class moderation(commands.Cog, name='Moderation'):
             # create a string that will go in our embed
             embstring = '\n'
 
-            # for every role id in the adminrole list were going to add a mention to the embed string
-            for roleid in adminroles:
+            if adminroles is None:
+                pass
+            else:
+                # for every role id in the adminrole list were going to add a mention to the embed string
+                for roleid in adminroles:
 
-                # get the role
-                role = get(ctx.guild.roles, id=roleid)
+                    # get the role
+                    role = get(ctx.guild.roles, id=roleid)
 
-                # if the role is None that measn the role could not be found.
-                if role is None:
+                    # if the role is None that measn the role could not be found.
+                    if role is None:
 
-                    # add the role ID to the embed string
-                    embstring += f'{roleid} (Role not found)\n'
+                        # add the role ID to the embed string
+                        embstring += f'{roleid} (Role not found)\n'
 
-                else:
+                    else:
 
-                    # add the role mention to the embed string
-                    embstring += f'{role.mention}\n'
+                        # add the role mention to the embed string
+                        embstring += f'{role.mention}\n'
 
             embstring = '\n`None`' if embstring == '\n' else embstring
 
@@ -1704,23 +1707,6 @@ class moderation(commands.Cog, name='Moderation'):
     # unhackban error handler
     @_unhackban.error
     async def _unhackban_handler(self, ctx, error):
-
-        # if the error is an instance of CheckAnyFailure It means the user didnt pass the checks before running the
-        # command. This means the user is not on the owner list or doesnt have the suffecient permissions to use the
-        # command
-        if isinstance(error, commands.CheckAnyFailure):
-
-            # send the error message
-            await ctx.send(f"{self.crossemoji} **You don't have permission to use this command!**")
-
-        # if the error is any other instance just print the error
-        else:
-
-            print(error)
-
-    # config error handler
-    @_config.error
-    async def _config_handler(self, ctx, error):
 
         # if the error is an instance of CheckAnyFailure It means the user didnt pass the checks before running the
         # command. This means the user is not on the owner list or doesnt have the suffecient permissions to use the
